@@ -6,11 +6,9 @@ from multiprocessing import Pool
 
 
 def karcher_mean(P, m, eps, maxiters):
-    n = P.shape[0]
-    assert P.shape[1] % m == 0
-    k = P.shape[1] // m
-
-    p_bar = P[:, :k]
+    n = P[0].shape[0]
+    k = P[0].shape[1]
+    p_bar = P[0]
 
     nw = np.inf
     w = np.zeros((n, k))
@@ -18,30 +16,20 @@ def karcher_mean(P, m, eps, maxiters):
     lowest_nw = np.inf
     best_p_bar = p_bar
     iters = 0
-    pool = Pool(processes=os.cpu_count())
     while nw > eps:
-        if iters % 100 == 0:
-            print('ERROR', nw)
         U, S, Vh = np.linalg.svd(w, full_matrices=False)
         V = Vh.T
         p_bar = np.dot(np.dot(p_bar, V), np.diag(np.cos(S))) + np.dot(U, np.diag(np.sin(S)))
         w = np.zeros((n, k))
 
         # Candy multiprocessing for parallel logq_map
-        for x in pool.imap(logq_factorised, [(p_bar, P[:, k * i:k * (i + 1)]) for i in range(m)]):
+        for x in pool.imap(logq_factorised, [(p_bar, point) for point in P]):
             w = w + x
-
-        #for i in range(m):
-        #    logq = logq_map(p_bar, P[:, k * i:k * (i + 1)])
-        #    w = w + logq
 
         w = w / m
 
         nw = np.linalg.norm(w, ord='fro')
 
-        #if nw > lowest_nw and iters > 1000:
-        #    print('was diverging best error %s next %s' % (lowest_nw, nw))
-        #    break
         if iters > maxiters:
             print('Max iters reached')
             break
@@ -49,6 +37,7 @@ def karcher_mean(P, m, eps, maxiters):
         lowest_nw = nw
         best_p_bar = p_bar
         iters += 1
+    print('Error on out: %s' % nw)
     return linalg.orth(best_p_bar)
 
 
@@ -242,7 +231,6 @@ if __name__ == '__main__':
     x = []
     for i in range(m):
         x.append(np.random.randn(n, k))
-    x = np.concatenate(x, axis=-1)
     scipy.io.savemat('/Users/adryw//Documents/MATLAB/inp_out.mat', dict(x=x))
 
     # x = np.array([[2.7477, -0.1649, 2.7477, -0.1649],
@@ -261,7 +249,12 @@ if __name__ == '__main__':
     print(y)
 
     y_hat = karcher_mean(x, m, 1e-4, 2000)
-    y = karcher_mean(x, m, 1e-12, 2000)
+    y = karcher_mean(x, m, 1e-16, 2000)
     print(linalg.subspace_angles(y_hat, y))
 
     print(time.time() - t)
+
+
+# Is this hell?
+PROCESS = os.cpu_count()
+pool = Pool(processes=PROCESS)

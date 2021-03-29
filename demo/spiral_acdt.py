@@ -1,45 +1,59 @@
-import scipy
+import time
 import numpy as np
-from datasets_util import make_spiral
-from karcher_mean import karcher_mean
-from sklearn.neighbors import NearestNeighbors
 import itertools
+import networkx as nx
+import sklearn.datasets as datasets
+import os
+from multiprocessing import Pool
+from datasets_util import make_spiral, make_spiral2
+from draw_utils import draw_spiral_clusters, draw_3d_clusters
+import karcher_mean
+from karcher_mean import karcher_mean as km
+from sklearn.neighbors import NearestNeighbors
 
 
 class Cluster:
-    def __init__(self, points, indices, M=None):
+    def __init__(self, X, points, indices, M=None):
         assert len(points) == len(indices)
+        self.X = X
         self.points = points
         self.indices = indices
+        self.F = None
         self.M = M
 
     def merge(self, other):
+        self.X.extend(other.X)
         self.points.extend(other.points)
         self.indices.extend(other.indices)
         self.M = None
 
-    def compute_mean(self):
-        karcher_mean(self.points, len(self.points))
+    def update_mean(self):
+        self.M = km(self.points, len(self.points), 1e-8, 1000)
 
     def __len__(self):
         return len(self.points)
 
 
+def d_clusters(Ci, Cj, E):
+    if not fusible(E, Ci, Cj):
+        # print(Ci.indices, Cj.indices, 'are NOT fusible')
+        return np.inf
+
+    d = d_hat(Ci, Cj)
+    # print(Ci.indices, Cj.indices, 'are fusible, with distance', d, d_min)
+    return d
+
+
 def argmin_dissimilarity(C, E):
     Ci_min = None
     Cj_min = None
-    d_min = np.inf
-    for Ci, Cj in itertools.combinations(C, r=2):
-        if not fusible(E, Ci, Cj):
-            #print(Ci.indices, Cj.indices, 'are NOT fusible')
-            continue
 
-        d = d_hat(Ci, Cj)
-        #print(Ci.indices, Cj.indices, 'are fusible, with distance', d, d_min)
-        if d < d_min:
-            Ci_min = Ci
-            Cj_min = Cj
-            d_min = d
+    # Candy multiprocessing for parallel logq_map
+    combs = list(itertools.combinations(C, r=2))
+    d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
+    min_idx = np.argmin(d_hats)
+    Ci_min = combs[min_idx][0]
+    Cj_min = combs[min_idx][1]
     return Ci_min, Cj_min
 
 
@@ -54,10 +68,9 @@ def fusible(E, Ci, Cj):
     """
     To check if two clusters are fusible we have to see if there's an edge connecting them
     we can iterate on Ci and see if it is connected to any sample in Cj.
-    We can use i=1..len(Ci) and j=i..len(Cj) as the relation is symmetric
     """
     for ith, i in enumerate(Ci.indices):
-        for j in Cj.indices[ith:]:
+        for j in Cj.indices:
             if E[i, j] == 1:
                 return True
     return False
@@ -72,7 +85,7 @@ def d_geodesic(x, y):
     ub_smaller = ub[:, np.where(~np.isclose(sb, 0))].squeeze(1)
     QaTQb = np.dot(ua_smaller.T, ub_smaller)
     uQaTQb, sQaTQb, vhQaTQb = np.linalg.svd(QaTQb)
-    assert np.logical_and(sQaTQb >= 0, sQaTQb <= 1 + 1e-4)  # Numerical error
+    assert np.logical_and(np.all(sQaTQb >= 0), np.all(sQaTQb <= 1 + 1e-4))  # Numerical error
     thetas = np.arccos(np.clip(sQaTQb, a_min=0, a_max=1))
     # print('THETA SQATQB', thetas, sQaTQb)
     # Equivalent to scipy.linalg.subspace_angles
@@ -80,20 +93,26 @@ def d_geodesic(x, y):
     return np.linalg.norm(thetas, ord=2)
 
 
+# Is this hell?
+PROCESS = os.cpu_count()
+pool = Pool(processes=PROCESS)
+
 # Params
-k = 5
-l = 10
-d = 1
+k = 5  # 3d swiss roll
+# k = 2  # 2d spiral
+l = 12
+d = 2
 
 # dataset points
-n = 100
-
-X = make_spiral(n=n, normalize=True)
+n = 1000
+# X = make_spiral(n=n, normalize=True)
+X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 _, k_indices = knn.kneighbors(X)  # Compute k-nearest neighbors indices
-k_indices = k_indices[:, 1:]  # TODO: is this needed? I don't think so and the graph is altered
+k_indices = k_indices[:, 1:]  # TODO ?
 E = knn.kneighbors_graph(X)
+G = nx.from_scipy_sparse_matrix(E)
 
 M = []
 for i, x in enumerate(X):
@@ -105,14 +124,32 @@ for i, x in enumerate(X):
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
 
 # Clustering
+t = time.time()
 n = len(X)
 lam = 0
-C = [Cluster([M[i]], [i], M[i]) for i, x in enumerate(X)]
+C = [Cluster([x], [M[i]], [i], M[i]) for i, x in enumerate(X)]
 while lam < n - l:
     Ci, Cj = argmin_dissimilarity(C, E)
-    C.remove(Ci)
-    C.remove(Cj)
-    C.append()
     print(Ci.indices, Cj.indices)
-    assert False
+    C.remove(Cj)
+    Ci.merge(Cj)
+    Ci.update_mean()
     lam += 1
+    print('Total Clusters: %s' % len(C))
+    print('Time for this merge: %s' % (time.time() - t))
+    t = time.time()
+
+for Ci in C:
+    samples = np.array(Ci.X).T
+    mean_pos = np.mean(samples, axis=1, keepdims=True)
+    C0mi = samples - mean_pos
+    u_C0mi, s, _ = np.linalg.svd(C0mi, full_matrices=False)
+    Ci.F = u_C0mi[:, :d]
+
+pool.close()  # TODO use with inside funcs
+karcher_mean.pool.close()
+
+if X.shape[1] == 2:
+    draw_spiral_clusters(X, C, G)
+if X.shape[1] == 3:
+    draw_3d_clusters(X, C)
