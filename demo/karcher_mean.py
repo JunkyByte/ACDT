@@ -3,6 +3,7 @@ import numpy as np
 import scipy.io
 from scipy import linalg
 from multiprocessing import Pool
+PROCESS = os.cpu_count()
 
 
 def karcher_mean(P, m, eps, maxiters):
@@ -23,8 +24,9 @@ def karcher_mean(P, m, eps, maxiters):
         w = np.zeros((n, k))
 
         # Candy multiprocessing for parallel logq_map
-        for x in pool.imap(logq_factorised, [(p_bar, point) for point in P]):
-            w = w + x
+        with Pool(processes=PROCESS) as pool:
+            for x in pool.imap(logq_factorised, [(p_bar, point) for point in P]):
+                w = w + x
 
         w = w / m
 
@@ -253,8 +255,3 @@ if __name__ == '__main__':
     print(linalg.subspace_angles(y_hat, y))
 
     print(time.time() - t)
-
-
-# Is this hell?
-PROCESS = os.cpu_count()
-pool = Pool(processes=PROCESS)

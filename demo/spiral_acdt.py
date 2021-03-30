@@ -10,6 +10,7 @@ from draw_utils import draw_spiral_clusters, draw_3d_clusters
 import karcher_mean
 from karcher_mean import karcher_mean as km
 from sklearn.neighbors import NearestNeighbors
+PROCESS = os.cpu_count()
 
 
 class Cluster:
@@ -50,7 +51,8 @@ def argmin_dissimilarity(C, E):
 
     # Candy multiprocessing for parallel logq_map
     combs = list(itertools.combinations(C, r=2))
-    d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
+    with Pool(processes=PROCESS) as pool:
+        d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
     min_idx = np.argmin(d_hats)
     Ci_min = combs[min_idx][0]
     Cj_min = combs[min_idx][1]
@@ -92,10 +94,6 @@ def d_geodesic(x, y):
     # assert np.allclose(np.linalg.norm(thetas), np.linalg.norm(scipy.linalg.subspace_angles(ua_smaller, ub_smaller)), atol=1e-4)
     return np.linalg.norm(thetas, ord=2)
 
-
-# Is this hell?
-PROCESS = os.cpu_count()
-pool = Pool(processes=PROCESS)
 
 # Params
 k = 5  # 3d swiss roll
@@ -145,9 +143,6 @@ for Ci in C:
     C0mi = samples - mean_pos
     u_C0mi, s, _ = np.linalg.svd(C0mi, full_matrices=False)
     Ci.F = u_C0mi[:, :d]
-
-pool.close()  # TODO use with inside funcs
-karcher_mean.pool.close()
 
 if X.shape[1] == 2:
     draw_spiral_clusters(X, C, G)
