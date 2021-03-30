@@ -34,10 +34,10 @@ def draw_spiral_clusters(C, G):
 
 
 def draw_3d_clusters(C):
-    X = sum([Ci.X for Ci in C], [])
+    X = np.array(sum([Ci.X for Ci in C], []))
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    colors = cmap(range(len(C)))
+    colors = [np.random.rand(3, ) for i in range(len(C))]
     colors_list = sum([[c] * len(C[i]) for i, c in enumerate(colors)], [])
     ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=colors_list)
     plt.show()

@@ -24,9 +24,8 @@ def karcher_mean(P, m, eps, maxiters):
         w = np.zeros((n, k))
 
         # Candy multiprocessing for parallel logq_map
-        with Pool(processes=PROCESS) as pool:
-            for x in pool.starmap(logq_map, [(p_bar, point) for point in P]):
-                w = w + x
+        for x in pool.starmap(logq_map, [(p_bar, point) for point in P]):
+            w = w + x
 
         w = w / m
 
@@ -216,6 +215,9 @@ def diagk(X, k):
     elif k < 0 and 1 - k <= X.shape[0]:
         return X[:, -k]  # TODO
     return []
+
+
+pool = Pool(processes=PROCESS)
 
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@ from sklearn.neighbors import NearestNeighbors
 PROCESS = os.cpu_count()
 
 
+
 class Cluster:
     def __init__(self, X, points, indices, M=None):
         assert len(points) == len(indices)
@@ -55,8 +56,7 @@ def argmin_dissimilarity(C, E):
     Ci_min = None
     Cj_min = None
     combs = list(itertools.combinations(C, r=2))
-    with Pool(processes=PROCESS) as pool:
-        d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
+    d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
     min_idx = np.argmin(d_hats)
     Ci_min = combs[min_idx][0]
     Cj_min = combs[min_idx][1]
@@ -94,15 +94,17 @@ def d_geodesic(x, y):
     return np.linalg.norm(thetas, ord=2)
 
 
+pool = Pool(processes=PROCESS)
+
 # Params
-k = 3
-l = 15
-d = 1
+k = 15
+l = 12
+d = 2
 
 # dataset points
-n = 100
-X = make_spiral3(n=n, normalize=True)
-# X, _ = datasets.make_swiss_roll(n)
+n = 5000
+# X = make_spiral3(n=n, normalize=True)
+X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 _, k_indices = knn.kneighbors(X)  # Compute k-nearest neighbors indices
@@ -120,13 +122,14 @@ for i, x in enumerate(X):
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
 
 # Clustering
+total = time.time()
 n = len(X)
 lam = 0
 C = [Cluster([x], [M[i]], [i], M[i]) for i, x in enumerate(X)]
 while lam < n - l:
     t = time.time()
     Ci, Cj = argmin_dissimilarity(C, E)
-    print(Ci.indices, Cj.indices)
+    print('Merged: %s with %s' % (Ci.indices, Cj.indices))
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
@@ -134,12 +137,18 @@ while lam < n - l:
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
 
+# Close multiprocessing pools
+pool.close()
+karcher_mean.pool.close()
+
 for Ci in C:
     samples = np.array(Ci.X).T
     mean_pos = np.mean(samples, axis=1, keepdims=True)
     C0mi = samples - mean_pos
     u_C0mi, s, _ = np.linalg.svd(C0mi, full_matrices=False)
     Ci.F = u_C0mi[:, :d]
+
+print(time.time() - total)
 
 if X.shape[1] == 2:
     draw_spiral_clusters(C, G)

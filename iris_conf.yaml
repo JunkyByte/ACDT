@@ -1,0 +1,8 @@
+from: local
+to: 1.tcp.eu.ngrok.io
+to_port: 22946
+mirror: True
+
+from_path: ~/Documents/ACDT/
+to_path: /home/adryw/Documents/iris_proj/ACDT/
+ignore_pattern: '**.git/** *.mp4 *.mkv *.mov *.MOV'
