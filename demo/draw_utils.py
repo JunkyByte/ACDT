@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 cmap = matplotlib.cm.get_cmap('rainbow')
 
 
-def draw_spiral_clusters(X, C, G):
+def draw_spiral_clusters(C, G):
+    X = sum([Ci.X for Ci in C], [])
     colors = [np.random.rand(3, ) for i in range(len(C))]
     colors_list = sum([[colors[i]] * len(C[i]) for i in range(len(C))], [])
     nx.draw(G, pos=X, node_size=40, node_color=colors_list)

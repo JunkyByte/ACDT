@@ -4,13 +4,11 @@ import itertools
 import networkx as nx
 import sklearn.datasets as datasets
 import os
-from multiprocessing import Pool
-from datasets_util import make_spiral, make_spiral2
+from datasets_util import make_spiral, make_spiral2, make_spiral3
 from draw_utils import draw_spiral_clusters, draw_3d_clusters
 import karcher_mean
 from karcher_mean import karcher_mean as km
 from sklearn.neighbors import NearestNeighbors
-PROCESS = os.cpu_count()
 
 
 class Cluster:
@@ -21,15 +19,21 @@ class Cluster:
         self.indices = indices
         self.F = None
         self.M = M
+        self.update_distance()
 
     def merge(self, other):
         self.X.extend(other.X)
         self.points.extend(other.points)
         self.indices.extend(other.indices)
         self.M = None
+        self.d = None
 
     def update_mean(self):
-        self.M = km(self.points, len(self.points), 1e-8, 1000)
+        self.M = km(self.points, len(self.points), 1e-6, 1000)
+        self.update_distance()
+
+    def update_distance(self):
+        self.d = sum([d_geodesic(self.M, Mx) for Mx in self.points])
 
     def __len__(self):
         return len(self.points)
@@ -48,11 +52,10 @@ def d_clusters(Ci, Cj, E):
 def argmin_dissimilarity(C, E):
     Ci_min = None
     Cj_min = None
-
-    # Candy multiprocessing for parallel logq_map
     combs = list(itertools.combinations(C, r=2))
-    with Pool(processes=PROCESS) as pool:
-        d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
+    d_hats = []
+    for Ci, Cj in combs:
+        d_hats.append(d_clusters(Ci, Cj, E))
     min_idx = np.argmin(d_hats)
     Ci_min = combs[min_idx][0]
     Cj_min = combs[min_idx][1]
@@ -61,8 +64,7 @@ def argmin_dissimilarity(C, E):
 
 def d_hat(Ci, Cj):
     d_mean = d_geodesic(Ci.M, Cj.M)
-    d = (len(Ci) + len(Cj)) * (d_mean ** 2)
-    d += 2 * d_mean * (sum([d_geodesic(Ci.M, Mx) for Mx in Ci.points]) + sum([d_geodesic(Cj.M, Mx) for Mx in Cj.points]))
+    d = (len(Ci) + len(Cj)) * (d_mean ** 2) + 2 * d_mean * (Ci.d + Cj.d)
     return d
 
 
@@ -71,7 +73,7 @@ def fusible(E, Ci, Cj):
     To check if two clusters are fusible we have to see if there's an edge connecting them
     we can iterate on Ci and see if it is connected to any sample in Cj.
     """
-    for ith, i in enumerate(Ci.indices):
+    for i in Ci.indices:
         for j in Cj.indices:
             if E[i, j] == 1:
                 return True
@@ -83,33 +85,28 @@ def d_geodesic(x, y):
     # This is unstable numerically but the error should be negligible here
     ua, sa, vha = np.linalg.svd(x)
     ub, sb, vhb = np.linalg.svd(y)
-    ua_smaller = ua[:, np.where(~np.isclose(sa, 0))].squeeze(1)
-    ub_smaller = ub[:, np.where(~np.isclose(sb, 0))].squeeze(1)
+    ua_smaller = ua[:, :sa.shape[0]]
+    ub_smaller = ub[:, :sa.shape[0]]
     QaTQb = np.dot(ua_smaller.T, ub_smaller)
     uQaTQb, sQaTQb, vhQaTQb = np.linalg.svd(QaTQb)
-    assert np.logical_and(np.all(sQaTQb >= 0), np.all(sQaTQb <= 1 + 1e-4))  # Numerical error
     thetas = np.arccos(np.clip(sQaTQb, a_min=0, a_max=1))
-    # print('THETA SQATQB', thetas, sQaTQb)
-    # Equivalent to scipy.linalg.subspace_angles
-    # assert np.allclose(np.linalg.norm(thetas), np.linalg.norm(scipy.linalg.subspace_angles(ua_smaller, ub_smaller)), atol=1e-4)
     return np.linalg.norm(thetas, ord=2)
 
 
 # Params
-k = 5  # 3d swiss roll
-# k = 2  # 2d spiral
-l = 12
-d = 2
+k = 3
+l = 15
+d = 1
 
 # dataset points
-n = 1000
-# X = make_spiral(n=n, normalize=True)
-X, _ = datasets.make_swiss_roll(n)
+n = 100
+X = make_spiral3(n=n, normalize=True)
+# X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 _, k_indices = knn.kneighbors(X)  # Compute k-nearest neighbors indices
 k_indices = k_indices[:, 1:]  # TODO ?
-E = knn.kneighbors_graph(X)
+E = knn.kneighbors_graph(X).astype(np.int)
 G = nx.from_scipy_sparse_matrix(E)
 
 M = []
@@ -122,11 +119,11 @@ for i, x in enumerate(X):
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
 
 # Clustering
-t = time.time()
 n = len(X)
 lam = 0
 C = [Cluster([x], [M[i]], [i], M[i]) for i, x in enumerate(X)]
 while lam < n - l:
+    t = time.time()
     Ci, Cj = argmin_dissimilarity(C, E)
     print(Ci.indices, Cj.indices)
     C.remove(Cj)
@@ -135,7 +132,6 @@ while lam < n - l:
     lam += 1
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
-    t = time.time()
 
 for Ci in C:
     samples = np.array(Ci.X).T
@@ -145,6 +141,6 @@ for Ci in C:
     Ci.F = u_C0mi[:, :d]
 
 if X.shape[1] == 2:
-    draw_spiral_clusters(X, C, G)
+    draw_spiral_clusters(C, G)
 if X.shape[1] == 3:
     draw_3d_clusters(X, C)

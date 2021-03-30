@@ -25,7 +25,7 @@ def karcher_mean(P, m, eps, maxiters):
 
         # Candy multiprocessing for parallel logq_map
         with Pool(processes=PROCESS) as pool:
-            for x in pool.imap(logq_factorised, [(p_bar, point) for point in P]):
+            for x in pool.starmap(logq_map, [(p_bar, point) for point in P]):
                 w = w + x
 
         w = w / m
@@ -41,10 +41,6 @@ def karcher_mean(P, m, eps, maxiters):
         iters += 1
     print('Error on out: %s' % nw)
     return linalg.orth(best_p_bar)
-
-
-def logq_factorised(x):
-    return logq_map(*x)
 
 
 def logq_map(p, q):
