@@ -3,12 +3,14 @@ import numpy as np
 import itertools
 import networkx as nx
 import sklearn.datasets as datasets
+import karcher_mean
 import os
 from datasets_util import make_spiral, make_spiral2, make_spiral3
 from draw_utils import draw_spiral_clusters, draw_3d_clusters
-import karcher_mean
+from multiprocessing import Pool
 from karcher_mean import karcher_mean as km
 from sklearn.neighbors import NearestNeighbors
+PROCESS = os.cpu_count()
 
 
 class Cluster:
@@ -19,7 +21,7 @@ class Cluster:
         self.indices = indices
         self.F = None
         self.M = M
-        self.update_distance()
+        self.d = 0
 
     def merge(self, other):
         self.X.extend(other.X)
@@ -53,9 +55,8 @@ def argmin_dissimilarity(C, E):
     Ci_min = None
     Cj_min = None
     combs = list(itertools.combinations(C, r=2))
-    d_hats = []
-    for Ci, Cj in combs:
-        d_hats.append(d_clusters(Ci, Cj, E))
+    with Pool(processes=PROCESS) as pool:
+        d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
     min_idx = np.argmin(d_hats)
     Ci_min = combs[min_idx][0]
     Cj_min = combs[min_idx][1]
