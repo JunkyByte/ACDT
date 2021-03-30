@@ -143,4 +143,4 @@ for Ci in C:
 if X.shape[1] == 2:
     draw_spiral_clusters(C, G)
 if X.shape[1] == 3:
-    draw_3d_clusters(X, C)
+    draw_3d_clusters(C)

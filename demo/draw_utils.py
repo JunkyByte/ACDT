@@ -33,7 +33,8 @@ def draw_spiral_clusters(C, G):
     plt.show()
 
 
-def draw_3d_clusters(X, C):
+def draw_3d_clusters(C):
+    X = sum([Ci.X for Ci in C], [])
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     colors = cmap(range(len(C)))
