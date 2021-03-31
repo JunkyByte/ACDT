@@ -18,7 +18,7 @@ def karcher_mean(P, m, eps, maxiters):
     best_p_bar = p_bar
     iters = 0
     while nw > eps:
-        U, S, Vh = np.linalg.svd(w, full_matrices=False)
+        U, S, Vh = linalg.svd(w, full_matrices=False, overwrite_a=True)
         V = Vh.T
         p_bar = np.dot(np.dot(p_bar, V), np.diag(np.cos(S))) + np.dot(U, np.diag(np.sin(S)))
         w = np.zeros((n, k))
@@ -85,10 +85,7 @@ def cs_decomp(Q1, Q2):
         V[:, :n] = V[:, i]
         return U, V, Z, C, S
 
-    #print(Q1)
-    U, C, Zh = np.linalg.svd(Q1)
-    #print('printed u')
-    #print(U)
+    U, C, Zh = linalg.svd(Q1, overwrite_a=True)
     C = np.diag(C)
     Z = Zh.T
 
@@ -130,7 +127,7 @@ def cs_decomp(Q1, Q2):
             ST = S[0, 0]
             VT = 1
         else:
-            UT, ST, VTh = np.linalg.svd(S[np.ix_(i, j)])
+            UT, ST, VTh = linalg.svd(S[np.ix_(i, j)])
             ST = np.diag(ST)
             VT = VTh.T
         if k > 0:

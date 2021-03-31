@@ -4,6 +4,7 @@ import itertools
 import networkx as nx
 import sklearn.datasets as datasets
 import karcher_mean
+import scipy.linalg
 import os
 from datasets_util import make_spiral, make_spiral2, make_spiral3
 from draw_utils import draw_spiral_clusters, draw_3d_clusters
@@ -84,27 +85,32 @@ def fusible(E, Ci, Cj):
 def d_geodesic(x, y):
     # Reference: http://dx.doi.org/10.1137%2FS1064827500377332 Page 3
     # This is unstable numerically but the error should be negligible here
-    ua, sa, vha = np.linalg.svd(x)
-    ub, sb, vhb = np.linalg.svd(y)
+    ua, sa, vha = scipy.linalg.svd(x)
+    ub, sb, vhb = scipy.linalg.svd(y)
     ua_smaller = ua[:, :sa.shape[0]]
     ub_smaller = ub[:, :sa.shape[0]]
     QaTQb = np.dot(ua_smaller.T, ub_smaller)
-    uQaTQb, sQaTQb, vhQaTQb = np.linalg.svd(QaTQb)
-    thetas = np.arccos(np.clip(sQaTQb, a_min=0, a_max=1))
+    uQaTQb, sQaTQb, vhQaTQb = scipy.linalg.svd(QaTQb)
+    sQaTQb.clip(0, 1, out=sQaTQb)
+    thetas = np.arccos(sQaTQb)
     return np.linalg.norm(thetas, ord=2)
 
 
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 15
-l = 12
-d = 2
+k = 5
+# k = 5
+# l = 12
+l = 15
+d = 1
 
 # dataset points
-n = 5000
+# n = 2000
+n = 200
+X = make_spiral2(n=n, normalize=True)
 # X = make_spiral3(n=n, normalize=True)
-X, _ = datasets.make_swiss_roll(n)
+# X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 _, k_indices = knn.kneighbors(X)  # Compute k-nearest neighbors indices
@@ -116,7 +122,7 @@ M = []
 for i, x in enumerate(X):
     Nx = X[k_indices[i]]  # Take k neighbors
     N0x = Nx - x  # Translate neighborhood to the origin
-    u_N0x, _, _ = np.linalg.svd(N0x, full_matrices=False)
+    u_N0x, _, _ = scipy.linalg.svd(N0x, full_matrices=False)
     M.append(u_N0x[:, :d])  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
@@ -145,7 +151,7 @@ for Ci in C:
     samples = np.array(Ci.X).T
     mean_pos = np.mean(samples, axis=1, keepdims=True)
     C0mi = samples - mean_pos
-    u_C0mi, s, _ = np.linalg.svd(C0mi, full_matrices=False)
+    u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
     Ci.F = u_C0mi[:, :d]
 
 print(time.time() - total)
