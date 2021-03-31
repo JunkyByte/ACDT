@@ -30,6 +30,7 @@ def draw_spiral_clusters(C, G):
 
         plt.plot(xs + p[0], ys + p[1], 'k-', lw=2.25, color=colors[i])
         plt.scatter(p[0], p[1], color=colors[i], edgecolors='black')
+    plt.savefig('./outfig.png')
     plt.show()
 
 
@@ -40,4 +41,5 @@ def draw_3d_clusters(C):
     colors = [np.random.rand(3, ) for i in range(len(C))]
     colors_list = sum([[c] * len(C[i]) for i, c in enumerate(colors)], [])
     ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=colors_list)
+    plt.savefig('./outfig.png')
     plt.show()

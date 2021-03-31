@@ -99,17 +99,18 @@ def d_geodesic(x, y):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 5
 # k = 5
+k = 3
 # l = 12
-l = 15
+l = 20
 d = 1
 
 # dataset points
 # n = 2000
-n = 200
-X = make_spiral2(n=n, normalize=True)
-# X = make_spiral3(n=n, normalize=True)
+n = 400
+# n = 100
+# X = make_spiral2(n=n, normalize=True)
+X = make_spiral3(n=n, normalize=True)
 # X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
