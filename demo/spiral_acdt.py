@@ -107,7 +107,7 @@ l = 60
 d = 1
 
 # dataset points
-n = 5000
+n = 100
 # X = make_spiral(n=n, normalize=True)
 # X = make_2_spiral(n=n, normalize=True)
 X, _ = datasets.make_swiss_roll(n)
@@ -148,11 +148,10 @@ while lam < n - l:
     lam += 1
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
-    assert False
 
 # Close multiprocessing pools
-pool.close()
-karcher_mean.pool.close()
+# pool.close()
+# karcher_mean.pool.close()
 
 for Ci in C:
     samples = np.array(Ci.X).T
@@ -164,17 +163,17 @@ for Ci in C:
 print(time.time() - total)
 
 # Save the data for further visualization
-data = {
-    'C': C,
-    'knn': knn
-}
-
-PATH = './saved/'
-os.makedirs(PATH, exist_ok=True)
-with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
-    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-if X.shape[1] == 2:
-    draw_spiral_clusters(C, k)
-if X.shape[1] == 3:
-    draw_3d_clusters(C)
+# data = {
+#     'C': C,
+#     'knn': knn
+# }
+# 
+# PATH = './saved/'
+# os.makedirs(PATH, exist_ok=True)
+# with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
+#     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+# 
+# if X.shape[1] == 2:
+#     draw_spiral_clusters(C, k)
+# if X.shape[1] == 3:
+#     draw_3d_clusters(C)
