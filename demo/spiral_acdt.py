@@ -5,8 +5,9 @@ import networkx as nx
 import sklearn.datasets as datasets
 import karcher_mean
 import scipy.linalg
+import pickle
 import os
-from datasets_util import make_spiral, make_spiral2, make_spiral3
+from datasets_util import make_spiral, make_2_spiral
 from draw_utils import draw_spiral_clusters, draw_3d_clusters
 from multiprocessing import Pool
 from karcher_mean import karcher_mean as km
@@ -56,9 +57,8 @@ def argmin_dissimilarity(C, knn):
 
     min_idx = np.argmin(pool.starmap(d_hat, pairs))  # TODO
     # min_idx = np.argmin([d_hat(Ci, Cj) for Ci, Cj in pairs])
-    Ci_min = pairs[min_idx][0]
-    Cj_min = pairs[min_idx][1]
-    return Ci_min, Cj_min
+
+    return pairs[min_idx]
 
 
 def d_hat(Ci, Cj):
@@ -98,20 +98,20 @@ def d_geodesic(x, y):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 5
-l = 20
-d = 2
+k = 15
+l = 60
+d = 1
 
 # dataset points
-n = 500
-# X = make_spiral2(n=n, normalize=True)
-# X = make_spiral3(n=n, normalize=True)
+n = 5000
+# X = make_spiral(n=n, normalize=True)
+# X = make_2_spiral(n=n, normalize=True)
 X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
-E = knn.kneighbors_graph(X).astype(np.int)
-G = nx.from_scipy_sparse_matrix(E)
+E = knn.kneighbors_graph(X).astype(np.int) # These are not used
+G = nx.from_scipy_sparse_matrix(E.copy(), create_using=nx.MultiGraph)
 
 C = []
 map_cluster = []  # Maps sample idx to cluster containing it
@@ -157,7 +157,18 @@ for Ci in C:
 
 print(time.time() - total)
 
+# Save the data for further visualization
+data = {
+    'C': C,
+    'knn': knn
+}
+
+PATH = './saved/'
+os.makedirs(PATH, exist_ok=True)
+with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
+    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
 if X.shape[1] == 2:
-    draw_spiral_clusters(C, G)
+    draw_spiral_clusters(C, k)
 if X.shape[1] == 3:
     draw_3d_clusters(C)

@@ -1,7 +1,8 @@
+import math
 import numpy as np
 from numpy import pi
 
-def make_spiral(n=100, normalize=False):
+def make_spiral_old(n=100, normalize=False):
     ls = np.linspace(0, 4 * np.pi, n)
     v = 1
     w = 1
@@ -15,16 +16,16 @@ def make_spiral(n=100, normalize=False):
     return out
 
 
-def make_spiral3(n=100, normalize=False):
+def make_spiral(n=100, normalize=False):
     theta = np.radians(np.linspace(90, 360 * 4, n))
-    theta *= np.geomspace(1, 2, n)[::-1]
+    theta *= np.geomspace(1, 2.3, n)[::-1]
     r = theta ** 2
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     return np.concatenate([x[..., None], y[..., None]], axis=1)
 
 
-def make_spiral2(n=100, normalize=False):
+def make_2_spiral(n=100, normalize=False):
     n = n // 2
     theta = np.sqrt(np.random.rand(n))*2*pi
 
