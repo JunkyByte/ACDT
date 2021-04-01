@@ -43,24 +43,20 @@ class Cluster:
         return len(self.points)
 
 
-def d_clusters(Ci, Cj, E):
-    if not fusible(E, Ci, Cj):
-        # print(Ci.indices, Cj.indices, 'are NOT fusible')
-        return np.inf
-
-    d = d_hat(Ci, Cj)
-    # print(Ci.indices, Cj.indices, 'are fusible, with distance', d, d_min)
-    return d
-
-
-def argmin_dissimilarity(C, E):
+def argmin_dissimilarity(C, knn):
     Ci_min = None
     Cj_min = None
-    combs = list(itertools.combinations(C, r=2))
-    d_hats = pool.starmap(d_clusters, [(Ci, Cj, E) for Ci, Cj in combs])
+
+    pairs = []
+    for Ci in C:
+        n = set(knn.kneighbors(Ci.X, return_distance=False).reshape((-1,)))
+        pairs.append([(Ci, map_cluster[i]) for i in n])
+    pairs = sum(pairs, [])  # Single list of pairs
+
+    d_hats = pool.starmap(d_hat, pairs)
     min_idx = np.argmin(d_hats)
-    Ci_min = combs[min_idx][0]
-    Cj_min = combs[min_idx][1]
+    Ci_min = pairs[min_idx][0]
+    Cj_min = pairs[min_idx][1]
     return Ci_min, Cj_min
 
 
@@ -99,19 +95,19 @@ def d_geodesic(x, y):
 pool = Pool(processes=PROCESS)
 
 # Params
-# k = 5
-k = 3
-# l = 12
-l = 20
-d = 1
+k = 5
+# k = 3
+l = 12
+# l = 20
+d = 2
 
 # dataset points
-# n = 2000
-n = 400
+n = 2000
+# n = 400
 # n = 100
 # X = make_spiral2(n=n, normalize=True)
-X = make_spiral3(n=n, normalize=True)
-# X, _ = datasets.make_swiss_roll(n)
+# X = make_spiral3(n=n, normalize=True)
+X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 _, k_indices = knn.kneighbors(X)  # Compute k-nearest neighbors indices
@@ -119,27 +115,33 @@ k_indices = k_indices[:, 1:]  # TODO ?
 E = knn.kneighbors_graph(X).astype(np.int)
 G = nx.from_scipy_sparse_matrix(E)
 
-M = []
+C = []
+map_cluster = []  # Maps sample idx to cluster containing it
 for i, x in enumerate(X):
     Nx = X[k_indices[i]]  # Take k neighbors
     N0x = Nx - x  # Translate neighborhood to the origin
     u_N0x, _, _ = scipy.linalg.svd(N0x, full_matrices=False)
-    M.append(u_N0x[:, :d])  # Take d-rank svd
+    M = u_N0x[:, :d]  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
+    C.append(Cluster([x], [M], [i], M))
+    map_cluster.append(C[-1])
 
 # Clustering
 total = time.time()
 n = len(X)
 lam = 0
-C = [Cluster([x], [M[i]], [i], M[i]) for i, x in enumerate(X)]
 while lam < n - l:
     t = time.time()
-    Ci, Cj = argmin_dissimilarity(C, E)
+    Ci, Cj = argmin_dissimilarity(C, knn)
     print('Merged: %s with %s' % (Ci.indices, Cj.indices))
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
+
+    for s_idx in Cj.indices:
+        map_cluster[s_idx] = Ci
+
     lam += 1
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
