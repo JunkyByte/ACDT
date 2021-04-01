@@ -4,7 +4,7 @@ import itertools
 import networkx as nx
 import sklearn.datasets as datasets
 import karcher_mean
-import scipy.linalg
+from scipy.linalg import svd
 import pickle
 import os
 from datasets_util import make_spiral, make_2_spiral
@@ -23,6 +23,7 @@ class Cluster:
         self.indices = indices
         self.F = None
         self.M = M
+        self.update_svd()
         self.d = 0
 
     def merge(self, other):
@@ -35,18 +36,20 @@ class Cluster:
     def update_mean(self):
         self.M = km(self.points, len(self.points), 1e-6, 50)  # TODO
         self.update_distance()
+        self.update_svd()
 
     def update_distance(self):
         self.d = sum([d_geodesic(self.M, Mx) for Mx in self.points])
+
+    def update_svd(self):
+        ua, sa, vha = svd(self.M)
+        self.Us = ua[:, :sa.shape[0]]
 
     def __len__(self):
         return len(self.points)
 
 
 def argmin_dissimilarity(C, knn):
-    Ci_min = None
-    Cj_min = None
-
     t = time.time()
     pairs = {}
     for Ci in C:
@@ -58,15 +61,13 @@ def argmin_dissimilarity(C, knn):
     print('Time to generate valid mergings:', time.time() - t)
 
     t = time.time()
-    # min_idx = np.argmin(pool.starmap(d_hat, pairs))
-    min_idx = np.argmin([d_hat(Ci, Cj) for Ci, Cj in pairs])  # Might be faster on small data
+    min_idx = np.argmin(pool.starmap(d_hat, pairs))
     print('Time to argmin distance:', time.time() - t)
-
     return pairs[min_idx]
 
 
 def d_hat(Ci, Cj):
-    d_mean = d_geodesic(Ci.M, Cj.M)
+    d_mean = d_geodesic(Ci.Us, Cj.Us)
     d = (len(Ci) + len(Cj)) * (d_mean ** 2) + 2 * d_mean * (Ci.d + Cj.d)
     return d
 
@@ -85,15 +86,12 @@ def fusible(E, Ci, Cj):
     return False
 
 
-def d_geodesic(x, y):
+def d_geodesic(ua, ub):
     # Reference: http://dx.doi.org/10.1137%2FS1064827500377332 Page 3
     # This is unstable numerically but the error should be negligible here
-    ua, sa, vha = scipy.linalg.svd(x)
-    ub, sb, vhb = scipy.linalg.svd(y)
-    ua_smaller = ua[:, :sa.shape[0]]
-    ub_smaller = ub[:, :sa.shape[0]]
-    QaTQb = np.dot(ua_smaller.T, ub_smaller)
-    uQaTQb, sQaTQb, vhQaTQb = scipy.linalg.svd(QaTQb)
+    # inputs are reduced left matrix of svd U for x and y
+    QaTQb = np.dot(ua.T, ub)
+    uQaTQb, sQaTQb, vhQaTQb = svd(QaTQb)
     sQaTQb.clip(0, 1, out=sQaTQb)
     thetas = np.arccos(sQaTQb)
     return np.linalg.norm(thetas, ord=2)
@@ -102,12 +100,12 @@ def d_geodesic(x, y):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 15
-l = 60
+k = 5
+l = 20
 d = 1
 
 # dataset points
-n = 100
+n = 1000
 # X = make_spiral(n=n, normalize=True)
 # X = make_2_spiral(n=n, normalize=True)
 X, _ = datasets.make_swiss_roll(n)
@@ -122,7 +120,7 @@ map_cluster = []  # Maps sample idx to cluster containing it
 for i, x in enumerate(X):
     Nx = X[k_indices[i]]  # Take k neighbors
     N0x = Nx - x  # Translate neighborhood to the origin
-    u_N0x, _, _ = scipy.linalg.svd(N0x, full_matrices=False)
+    u_N0x, _, _ = svd(N0x, full_matrices=False)
     M = u_N0x[:, :d]  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
@@ -137,7 +135,6 @@ while lam < n - l:
     t = time.time()
     Ci, Cj = argmin_dissimilarity(C, knn)
     print('Merged: %s with %s' % (Ci.indices, Cj.indices))
-    t = time.time()
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
@@ -157,7 +154,7 @@ for Ci in C:
     samples = np.array(Ci.X).T
     mean_pos = np.mean(samples, axis=1, keepdims=True)
     C0mi = samples - mean_pos
-    u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
+    u_C0mi, s, _ = svd(C0mi, full_matrices=False)
     Ci.F = u_C0mi[:, :d]
 
 print(time.time() - total)
@@ -167,12 +164,12 @@ print(time.time() - total)
 #     'C': C,
 #     'knn': knn
 # }
-# 
+
 # PATH = './saved/'
 # os.makedirs(PATH, exist_ok=True)
 # with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
 #     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-# 
+
 # if X.shape[1] == 2:
 #     draw_spiral_clusters(C, k)
 # if X.shape[1] == 3:
