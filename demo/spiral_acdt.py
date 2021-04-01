@@ -16,13 +16,14 @@ PROCESS = os.cpu_count()
 
 
 class Cluster:
-    def __init__(self, X, points, indices, M=None):
+    def __init__(self, X, N, points, indices, M=None):
         assert len(points) == len(indices)
         self.X = X
         self.points = points
         self.indices = indices
         self.F = None
         self.M = M
+        self.N = N
         self.update_svd()
         self.d = 0
 
@@ -53,7 +54,7 @@ def argmin_dissimilarity(C, knn):
     t = time.time()
     pairs = {}
     for Ci in C:
-        neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+        neigh = set(Ci.N.flatten())
         neigh_c = [map_cluster[n] for n in neigh]
         pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
     pairs = sum(pairs.values(), [])  # Single list of pairs
@@ -100,15 +101,15 @@ def d_geodesic(ua, ub):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 5
-l = 20
+k = 4
+l = 40
 d = 1
 
 # dataset points
-n = 1000
-# X = make_spiral(n=n, normalize=True)
+n = 200
+X = make_spiral(n=n, normalize=True)
 # X = make_2_spiral(n=n, normalize=True)
-X, _ = datasets.make_swiss_roll(n)
+# X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
@@ -124,7 +125,7 @@ for i, x in enumerate(X):
     M = u_N0x[:, :d]  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
-    C.append(Cluster([x], [M], [i], M))
+    C.append(Cluster([x], knn.kneighbors([x], return_distance=False)[:, 1:], [M], [i], M))
     map_cluster.append(C[-1])
 
 # Clustering
@@ -138,6 +139,7 @@ while lam < n - l:
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
+    Ci.N = knn.kneighbors(Ci.X, return_distance=False)[:, 1:]
 
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
@@ -147,8 +149,8 @@ while lam < n - l:
     print('Time for this merge: %s' % (time.time() - t))
 
 # Close multiprocessing pools
-# pool.close()
-# karcher_mean.pool.close()
+pool.close()
+karcher_mean.pool.close()
 
 for Ci in C:
     samples = np.array(Ci.X).T
@@ -170,7 +172,7 @@ print(time.time() - total)
 # with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
 #     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-# if X.shape[1] == 2:
-#     draw_spiral_clusters(C, k)
-# if X.shape[1] == 3:
-#     draw_3d_clusters(C)
+if X.shape[1] == 2:
+    draw_spiral_clusters(C, k)
+if X.shape[1] == 3:
+    draw_3d_clusters(C)
