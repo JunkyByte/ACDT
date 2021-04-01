@@ -14,7 +14,6 @@ from sklearn.neighbors import NearestNeighbors
 PROCESS = os.cpu_count()
 
 
-
 class Cluster:
     def __init__(self, X, points, indices, M=None):
         assert len(points) == len(indices)
@@ -33,7 +32,7 @@ class Cluster:
         self.d = None
 
     def update_mean(self):
-        self.M = km(self.points, len(self.points), 1e-6, 1000)
+        self.M = km(self.points, len(self.points), 1e-6, 50)  # TODO
         self.update_distance()
 
     def update_distance(self):
@@ -47,14 +46,16 @@ def argmin_dissimilarity(C, knn):
     Ci_min = None
     Cj_min = None
 
-    pairs = []
+    pairs = {}
     for Ci in C:
-        n = set(knn.kneighbors(Ci.X, return_distance=False).reshape((-1,)))
-        pairs.append([(Ci, map_cluster[i]) for i in n])
-    pairs = sum(pairs, [])  # Single list of pairs
+        neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+        neigh_c = [map_cluster[n] for n in neigh]
+        pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
+    pairs = sum(pairs.values(), [])  # Single list of pairs
+    print('Checking %s valid mergings' % len(pairs))
 
-    d_hats = pool.starmap(d_hat, pairs)
-    min_idx = np.argmin(d_hats)
+    min_idx = np.argmin(pool.starmap(d_hat, pairs))  # TODO
+    # min_idx = np.argmin([d_hat(Ci, Cj) for Ci, Cj in pairs])
     Ci_min = pairs[min_idx][0]
     Cj_min = pairs[min_idx][1]
     return Ci_min, Cj_min
@@ -70,6 +71,8 @@ def fusible(E, Ci, Cj):
     """
     To check if two clusters are fusible we have to see if there's an edge connecting them
     we can iterate on Ci and see if it is connected to any sample in Cj.
+
+    This is not used as is very inefficient
     """
     for i in Ci.indices:
         for j in Cj.indices:
@@ -96,22 +99,17 @@ pool = Pool(processes=PROCESS)
 
 # Params
 k = 5
-# k = 3
-l = 12
-# l = 20
+l = 20
 d = 2
 
 # dataset points
-n = 2000
-# n = 400
-# n = 100
+n = 500
 # X = make_spiral2(n=n, normalize=True)
 # X = make_spiral3(n=n, normalize=True)
 X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
-_, k_indices = knn.kneighbors(X)  # Compute k-nearest neighbors indices
-k_indices = k_indices[:, 1:]  # TODO ?
+k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
 E = knn.kneighbors_graph(X).astype(np.int)
 G = nx.from_scipy_sparse_matrix(E)
 

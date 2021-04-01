@@ -26,7 +26,7 @@ def make_spiral3(n=100, normalize=False):
 
 def make_spiral2(n=100, normalize=False):
     n = n // 2
-    theta = np.sqrt(np.random.rand(n))*2*pi # np.linspace(0,2*pi,100)
+    theta = np.sqrt(np.random.rand(n))*2*pi
 
     r_a = 2*theta + pi
     data_a = np.array([np.cos(theta)*r_a, np.sin(theta)*r_a]).T
