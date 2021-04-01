@@ -47,6 +47,7 @@ def argmin_dissimilarity(C, knn):
     Ci_min = None
     Cj_min = None
 
+    t = time.time()
     pairs = {}
     for Ci in C:
         neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
@@ -54,9 +55,12 @@ def argmin_dissimilarity(C, knn):
         pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
     pairs = sum(pairs.values(), [])  # Single list of pairs
     print('Checking %s valid mergings' % len(pairs))
+    print('Time to generate valid mergings:', time.time() - t)
 
-    min_idx = np.argmin(pool.starmap(d_hat, pairs))  # TODO
-    # min_idx = np.argmin([d_hat(Ci, Cj) for Ci, Cj in pairs])
+    t = time.time()
+    # min_idx = np.argmin(pool.starmap(d_hat, pairs))
+    min_idx = np.argmin([d_hat(Ci, Cj) for Ci, Cj in pairs])  # Might be faster on small data
+    print('Time to argmin distance:', time.time() - t)
 
     return pairs[min_idx]
 
@@ -133,6 +137,7 @@ while lam < n - l:
     t = time.time()
     Ci, Cj = argmin_dissimilarity(C, knn)
     print('Merged: %s with %s' % (Ci.indices, Cj.indices))
+    t = time.time()
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
@@ -143,6 +148,7 @@ while lam < n - l:
     lam += 1
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
+    assert False
 
 # Close multiprocessing pools
 pool.close()
