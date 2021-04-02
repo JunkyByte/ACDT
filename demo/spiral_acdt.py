@@ -34,8 +34,9 @@ def np_clip(a, a_min, a_max, out=None):
 
 
 class Cluster:
-    def __init__(self, X, N, points, indices, M=None):
+    def __init__(self, idx, X, N, points, indices, M=None):
         assert len(points) == len(indices)
+        self.idx = idx
         self.X = X
         self.points = points
         self.indices = indices
@@ -68,21 +69,53 @@ class Cluster:
         return len(self.points)
 
 
-def argmin_dissimilarity(C):
-    # t = time.time()
+def argmin_dissimilarity(C, d):
+    t = time.time()
     pairs = {}
-    for Ci in C:
+    for Ci in C:  # TODO: If this is computed at a faster speed it's done
         neigh = set(Ci.N.flatten())
         neigh_c = [map_cluster[n] for n in neigh]
-        pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
+        # Compute only pairs that are connected and which distance has to be updated
+        pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if d[Ci.idx, Cj.idx] == -1 and Cj not in pairs.keys() and Ci != Cj]
     pairs = list(chain.from_iterable(pairs.values()))  # Single list of pairs
-    # print('Checking %s valid mergings' % len(pairs))
-    # print('Time to generate valid mergings:', time.time() - t)
+    print('Checking %s valid mergings' % len(pairs))
+    print('Time to generate valid mergings:', time.time() - t)
 
     # t = time.time()
-    min_idx = np.argmin(pool.starmap(d_hat, pairs))
-    # print('Time to argmin distance:', time.time() - t)
-    return pairs[min_idx]
+    for i, d_new in enumerate(pool.starmap(d_hat, pairs)):
+        Ci, Cj = pairs[i]
+        if Ci.idx < Cj.idx:
+            i = Ci.idx
+            j = Cj.idx
+        else:
+            i = Cj.idx
+            j = Ci.idx
+        d[i, j] = d_new
+
+    t2 = time.time()
+    i, j = argmin(d)
+    print('time for argmin', time.time() - t2)
+    # print(i, j)
+    Ci = next(Ci for Ci in C if Ci.idx == i)
+    Cj = next(Cj for Cj in C if Cj.idx == j)
+    print('Time to function armin_diss:', time.time() - t)
+    return Ci, Cj, d
+
+
+@njit(cache=True)
+def argmin(A):
+    n, m = A.shape
+    min_v = np.inf
+    min_idx = (-1, -1)
+    for i in range(n):
+        for j in range(i, m):
+            x = A[i, j]
+            if x == -1:
+                continue
+            if x < min_v:
+                min_v = x
+                min_idx = (i, j)
+    return min_idx
 
 
 def d_hat(Ci, Cj):
@@ -134,6 +167,7 @@ knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
 E = knn.kneighbors_graph(X).astype(np.int) # These are not used
 G = nx.from_scipy_sparse_matrix(E.copy(), create_using=nx.MultiGraph)
+distances = np.ones((n, n), dtype=np.float32) * -1  # This will be a triangular matrix, I'm only using upper half
 
 C = []
 map_cluster = []  # Maps sample idx to cluster containing it
@@ -144,7 +178,7 @@ for i, x in enumerate(X):
     M = u_N0x[:, :d]  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
-    C.append(Cluster([x], knn.kneighbors([x], return_distance=False)[:, 1:], [M], [i], M))
+    C.append(Cluster(i, [x], knn.kneighbors([x], return_distance=False)[:, 1:], [M], [i], M))
     map_cluster.append(C[-1])
 
 
@@ -159,11 +193,15 @@ n = len(X)
 lam = 0
 while lam < n - l:
     t = time.time()
-    Ci, Cj = argmin_dissimilarity(C)
+    Ci, Cj, distances = argmin_dissimilarity(C, distances)  # This returns the updated distances
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
     Ci.N = knn.kneighbors(Ci.X, return_distance=False)[:, 1:]
+    distances[Cj.idx, :] = -1
+    distances[:, Cj.idx] = -1
+    distances[Ci.idx, :] = -1
+    distances[:, Ci.idx] = -1
 
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
