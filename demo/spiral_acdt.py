@@ -12,7 +12,25 @@ from draw_utils import draw_spiral_clusters, draw_3d_clusters
 from multiprocessing import Pool
 from karcher_mean import karcher_mean as km
 from sklearn.neighbors import NearestNeighbors
+from itertools import chain
+from numba import extending, njit
 PROCESS = os.cpu_count()
+
+
+@extending.overload(np.clip)
+def np_clip(a, a_min, a_max, out=None):
+    def np_clip_impl(a, a_min, a_max, out=None):
+        if out is None:
+            out = np.empty_like(a)
+        for i in range(len(a)):
+            if a[i] < a_min:
+                out[i] = a_min
+            elif a[i] > a_max:
+                out[i] = a_max
+            else:
+                out[i] = a[i]
+        return out
+    return np_clip_impl
 
 
 class Cluster:
@@ -43,27 +61,27 @@ class Cluster:
         self.d = sum([d_geodesic(self.M, Mx) for Mx in self.points])
 
     def update_svd(self):
-        ua, sa, vha = svd(self.M)
+        ua, sa, vha = svd(self.M, check_finite=False)
         self.Us = ua[:, :sa.shape[0]]
 
     def __len__(self):
         return len(self.points)
 
 
-def argmin_dissimilarity(C, knn):
-    t = time.time()
+def argmin_dissimilarity(C):
+    # t = time.time()
     pairs = {}
     for Ci in C:
         neigh = set(Ci.N.flatten())
         neigh_c = [map_cluster[n] for n in neigh]
         pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
-    pairs = sum(pairs.values(), [])  # Single list of pairs
-    print('Checking %s valid mergings' % len(pairs))
-    print('Time to generate valid mergings:', time.time() - t)
+    pairs = list(chain.from_iterable(pairs.values()))  # Single list of pairs
+    # print('Checking %s valid mergings' % len(pairs))
+    # print('Time to generate valid mergings:', time.time() - t)
 
-    t = time.time()
+    # t = time.time()
     min_idx = np.argmin(pool.starmap(d_hat, pairs))
-    print('Time to argmin distance:', time.time() - t)
+    # print('Time to argmin distance:', time.time() - t)
     return pairs[min_idx]
 
 
@@ -87,13 +105,14 @@ def fusible(E, Ci, Cj):
     return False
 
 
+@njit(cache=True)
 def d_geodesic(ua, ub):
     # Reference: http://dx.doi.org/10.1137%2FS1064827500377332 Page 3
     # This is unstable numerically but the error should be negligible here
     # inputs are reduced left matrix of svd U for x and y
     QaTQb = np.dot(ua.T, ub)
-    sQaTQb = svd(QaTQb, compute_uv=False, overwrite_a=True, check_finite=False)
-    sQaTQb.clip(0, 1, out=sQaTQb)
+    a, sQaTQb, b = np.linalg.svd(QaTQb)
+    np.clip(sQaTQb, 0, 1, out=sQaTQb)
     thetas = np.arccos(sQaTQb)
     return np.linalg.norm(thetas, ord=2)
 
@@ -102,7 +121,7 @@ pool = Pool(processes=PROCESS)
 
 # Params
 k = 15
-l = 4995
+l = 60
 d = 2
 
 # dataset points
@@ -128,14 +147,19 @@ for i, x in enumerate(X):
     C.append(Cluster([x], knn.kneighbors([x], return_distance=False)[:, 1:], [M], [i], M))
     map_cluster.append(C[-1])
 
+
+# Useful for benchmark to precompile the numba execution
+# pool.starmap(d_hat, [(C[0], C[0]) for i in range(PROCESS)])
+# km(C[0].points, 1, 1e-6, 50)
+########################################################
+
 # Clustering
 total = time.time()
 n = len(X)
 lam = 0
 while lam < n - l:
     t = time.time()
-    Ci, Cj = argmin_dissimilarity(C, knn)
-    print('Merged: %s with %s' % (Ci.indices, Cj.indices))
+    Ci, Cj = argmin_dissimilarity(C)
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
@@ -145,8 +169,7 @@ while lam < n - l:
         map_cluster[s_idx] = Ci
 
     lam += 1
-    print('Total Clusters: %s' % len(C))
-    print('Time for this merge: %s' % (time.time() - t))
+    print('Clusters: %s/%s Merging took: %s' % (len(C), l, time.time() - t))
 
 # Close multiprocessing pools
 pool.close()
@@ -162,17 +185,17 @@ for Ci in C:
 print(time.time() - total)
 
 # Save the data for further visualization
-# data = {
-#     'C': C,
-#     'knn': knn
-# }
+data = {
+    'C': C,
+    'knn': knn
+}
 
-# PATH = './saved/'
-# os.makedirs(PATH, exist_ok=True)
-# with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
-#     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+PATH = './saved/'
+os.makedirs(PATH, exist_ok=True)
+with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
+    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-# if X.shape[1] == 2:
-#     draw_spiral_clusters(C, k)
-# if X.shape[1] == 3:
-#     draw_3d_clusters(C)
+if X.shape[1] == 2:
+    draw_spiral_clusters(C, k)
+if X.shape[1] == 3:
+    draw_3d_clusters(C)

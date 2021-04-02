@@ -3,6 +3,7 @@ import numpy as np
 import scipy.io
 from scipy.linalg import svd, orth, null_space
 from multiprocessing import Pool
+from numba import njit, extending, jit
 PROCESS = os.cpu_count()
 
 
@@ -68,7 +69,6 @@ def cs_decomp(Q1, Q2):
     m, p = Q1.shape
     n, pb = Q2.shape
 
-    #print('m < n', m, n)
     if m < n:
         V, U, Z, S, C = cs_decomp(Q2, Q1)
         j = range(p - 1, -1, -1)
@@ -112,7 +112,6 @@ def cs_decomp(Q1, Q2):
     else:
         V = np.eye(S.shape[0])
 
-
     S = np.dot(V.T, S)
     r = min(k, m)
     S[:, :r] = diagf(S[:, :r])
@@ -138,10 +137,6 @@ def cs_decomp(Q1, Q2):
         V[:, i] = np.dot(V[:, i], UT)
         Z[:, j] = np.dot(Z[:, j], VT)
         i = range(k, q)
-
-        #tmp = C[np.ix_(i, j)]
-        #if len(j) == 1:  # TODO disabled but may be needed
-        #    tmp = tmp.reshape((-1, 1))
 
         Q, R = np.linalg.qr(C[np.ix_(i, j)], mode='complete')
         C[np.ix_(i, j)] = diagf(R)
@@ -188,8 +183,9 @@ def cs_decomp(Q1, Q2):
     return U, V, Z, C, S
 
 
+@njit(cache=True)
 def diagp(Y, X, k):
-    D = diagk(X, k)
+    D = diagk(X, k).astype(np.float64)
     j = np.where((np.real(D) < 0) | (np.imag(D) != 0))[0]
     #print(j.shape)
     if j.size != 0:
@@ -200,10 +196,12 @@ def diagp(Y, X, k):
     return Y, X
 
 
+@njit(cache=True)
 def diagf(X):
     return np.triu(np.tril(X))
 
 
+@njit(cache=True)
 def diagk(X, k):
     if min(np.shape(X)) > 1:
         return np.diag(X, k)
@@ -211,7 +209,7 @@ def diagk(X, k):
         return X[:, k]  # TODO
     elif k < 0 and 1 - k <= X.shape[0]:
         return X[:, -k]  # TODO
-    return []
+    return np.empty((0,), dtype=np.float64)
 
 
 pool = Pool(processes=PROCESS)
