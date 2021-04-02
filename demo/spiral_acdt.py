@@ -92,7 +92,7 @@ def d_geodesic(ua, ub):
     # This is unstable numerically but the error should be negligible here
     # inputs are reduced left matrix of svd U for x and y
     QaTQb = np.dot(ua.T, ub)
-    uQaTQb, sQaTQb, vhQaTQb = svd(QaTQb)
+    sQaTQb = svd(QaTQb, compute_uv=False, overwrite_a=True, check_finite=False)
     sQaTQb.clip(0, 1, out=sQaTQb)
     thetas = np.arccos(sQaTQb)
     return np.linalg.norm(thetas, ord=2)
@@ -101,15 +101,15 @@ def d_geodesic(ua, ub):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 4
-l = 40
-d = 1
+k = 15
+l = 4995
+d = 2
 
 # dataset points
-n = 200
-X = make_spiral(n=n, normalize=True)
+n = 5000
+# X = make_spiral(n=n, normalize=True)
 # X = make_2_spiral(n=n, normalize=True)
-# X, _ = datasets.make_swiss_roll(n)
+X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
@@ -121,7 +121,7 @@ map_cluster = []  # Maps sample idx to cluster containing it
 for i, x in enumerate(X):
     Nx = X[k_indices[i]]  # Take k neighbors
     N0x = Nx - x  # Translate neighborhood to the origin
-    u_N0x, _, _ = svd(N0x, full_matrices=False)
+    u_N0x, _, _ = svd(N0x, full_matrices=False, overwrite_a=True, check_finite=False)
     M = u_N0x[:, :d]  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
@@ -172,7 +172,7 @@ print(time.time() - total)
 # with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
 #     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-if X.shape[1] == 2:
-    draw_spiral_clusters(C, k)
-if X.shape[1] == 3:
-    draw_3d_clusters(C)
+# if X.shape[1] == 2:
+#     draw_spiral_clusters(C, k)
+# if X.shape[1] == 3:
+#     draw_3d_clusters(C)

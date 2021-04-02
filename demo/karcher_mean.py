@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import scipy.io
-from scipy import linalg
+from scipy.linalg import svd, orth, null_space
 from multiprocessing import Pool
 PROCESS = os.cpu_count()
 
@@ -18,7 +18,7 @@ def karcher_mean(P, m, eps, maxiters):
     best_p_bar = p_bar
     iters = 0
     while nw > eps:
-        U, S, Vh = linalg.svd(w, full_matrices=False, overwrite_a=True)
+        U, S, Vh = svd(w, full_matrices=False, overwrite_a=True, check_finite=False)
         V = Vh.T
         p_bar = np.dot(np.dot(p_bar, V), np.diag(np.cos(S))) + np.dot(U, np.diag(np.sin(S)))
         w = np.zeros((n, k))
@@ -39,7 +39,7 @@ def karcher_mean(P, m, eps, maxiters):
         best_p_bar = p_bar
         iters += 1
     print('Error on out: %s' % nw)
-    return linalg.orth(best_p_bar)
+    return orth(best_p_bar)
 
 
 def logq_map(p, q):
@@ -49,7 +49,7 @@ def logq_map(p, q):
     """
     A = np.dot(p.T, q)
     n, k = p.shape
-    B = np.dot(linalg.null_space(p.T).T, q)
+    B = np.dot(null_space(p.T).T, q)
     V, W, Z, C, S = cs_decomp(A, B)
     if n > 2 * k:
         S = S[:k, :]
@@ -58,7 +58,7 @@ def logq_map(p, q):
         S = np.vstack([S, np.zeros((2 * k - n, k))])
         W = np.hstack([W, np.zeros((n - k, 2 * k - n))])
     C = np.diag(1 / np.diag(C))
-    U = np.dot(linalg.null_space(p.T), W)
+    U = np.dot(null_space(p.T), W)
     T = np.arctan(np.dot(S, C))
     X = np.dot(np.dot(U, T), V.T)
     return X
@@ -85,7 +85,7 @@ def cs_decomp(Q1, Q2):
         V[:, :n] = V[:, i]
         return U, V, Z, C, S
 
-    U, C, Zh = linalg.svd(Q1, overwrite_a=True)
+    U, C, Zh = svd(Q1, overwrite_a=True, check_finite=False)
     C = np.diag(C)
     Z = Zh.T
 
@@ -127,7 +127,7 @@ def cs_decomp(Q1, Q2):
             ST = S[0, 0]
             VT = 1
         else:
-            UT, ST, VTh = linalg.svd(S[np.ix_(i, j)])
+            UT, ST, VTh = svd(S[np.ix_(i, j)], check_finite=False)
             ST = np.diag(ST)
             VT = VTh.T
         if k > 0:
