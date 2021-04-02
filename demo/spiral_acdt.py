@@ -54,7 +54,7 @@ class Cluster:
         self.d = None
 
     def update_mean(self):
-        self.M = km(self.points, len(self.points), 1e-6, 50)  # TODO
+        self.M = km(self.points, len(self.points), 1e-4, 50)  # TODO Inspect this for correct maxit
         self.update_distance()
         self.update_svd()
 
@@ -62,7 +62,7 @@ class Cluster:
         self.d = sum([d_geodesic(self.M, Mx) for Mx in self.points])
 
     def update_svd(self):
-        ua, sa, vha = svd(self.M, check_finite=False)
+        ua, sa, _ = svd(self.M, check_finite=False)
         self.Us = ua[:, :sa.shape[0]]
 
     def __len__(self):
@@ -72,8 +72,8 @@ class Cluster:
 def argmin_dissimilarity(C, d):
     t = time.time()
     pairs = {}
-    for Ci in C:  # TODO: If this is computed at a faster speed it's done
-        neigh = set(Ci.N.flatten())
+    for Ci in C:  # This is the main bottleneck as everything is precomputed
+        neigh = Ci.N
         neigh_c = [map_cluster[n] for n in neigh]
         # Compute only pairs that are connected and which distance has to be updated
         pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if d[Ci.idx, Cj.idx] == -1 and Cj not in pairs.keys() and Ci != Cj]
@@ -178,7 +178,7 @@ for i, x in enumerate(X):
     M = u_N0x[:, :d]  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
     # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
-    C.append(Cluster(i, [x], knn.kneighbors([x], return_distance=False)[:, 1:], [M], [i], M))
+    C.append(Cluster(i, [x], set(knn.kneighbors([x], return_distance=False)[:, 1:].flatten()), [M], [i], M))
     map_cluster.append(C[-1])
 
 
@@ -197,7 +197,7 @@ while lam < n - l:
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
-    Ci.N = knn.kneighbors(Ci.X, return_distance=False)[:, 1:]
+    Ci.N = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
     distances[Cj.idx, :] = -1
     distances[:, Cj.idx] = -1
     distances[Ci.idx, :] = -1
