@@ -54,7 +54,7 @@ class Cluster:
         self.d = None
 
     def update_mean(self):
-        self.M = km(self.points, len(self.points), 1e-4, 50)  # TODO Inspect this for correct maxit
+        self.M = km(self.points, len(self.points), 1e-3, 20)  # TODO Inspect this for correct maxit
         self.update_distance()
         self.update_svd()
 
@@ -69,36 +69,33 @@ class Cluster:
         return len(self.points)
 
 
-def argmin_dissimilarity(C, d):
-    t = time.time()
-    pairs = {}
-    for Ci in C:  # This is the main bottleneck as everything is precomputed
-        neigh = Ci.N
-        neigh_c = [map_cluster[n] for n in neigh]
-        # Compute only pairs that are connected and which distance has to be updated
-        pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if d[Ci.idx, Cj.idx] == -1 and Cj not in pairs.keys() and Ci != Cj]
-    pairs = list(chain.from_iterable(pairs.values()))  # Single list of pairs
-    print('Checking %s valid mergings' % len(pairs))
-    print('Time to generate valid mergings:', time.time() - t)
+def argmin_dissimilarity(C, d, pairs=None):
+    # t = time.time()
+
+    if pairs is None:
+        pairs = {}
+
+        for Ci in C:  # This is the main bottleneck as everything is precomputed
+            neigh_c = [map_cluster[n] for n in Ci.N if n != Ci.idx]
+            # Compute only pairs that are connected and which distance has to be updated
+            pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if d[Ci.idx, Cj.idx] == -1 and Cj not in pairs.keys()]
+        pairs = list(chain.from_iterable(pairs.values()))  # Single list of pairs
+    # print('Checking %s valid mergings' % len(pairs))
+    # print('Time to generate valid mergings:', time.time() - t)
 
     # t = time.time()
     for i, d_new in enumerate(pool.starmap(d_hat, pairs)):
         Ci, Cj = pairs[i]
-        if Ci.idx < Cj.idx:
-            i = Ci.idx
-            j = Cj.idx
-        else:
-            i = Cj.idx
-            j = Ci.idx
-        d[i, j] = d_new
+        d[Ci.idx, Cj.idx] = d_new
+        d[Cj.idx, Ci.idx] = d_new
 
-    t2 = time.time()
+    # t2 = time.time()
     i, j = argmin(d)
-    print('time for argmin', time.time() - t2)
+    # print('time for argmin', time.time() - t2)
     # print(i, j)
     Ci = next(Ci for Ci in C if Ci.idx == i)
     Cj = next(Cj for Cj in C if Cj.idx == j)
-    print('Time to function armin_diss:', time.time() - t)
+    # print('Time to function armin_diss:', time.time() - t)
     return Ci, Cj, d
 
 
@@ -153,12 +150,12 @@ def d_geodesic(ua, ub):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 15
+k = 10
 l = 60
 d = 2
 
 # dataset points
-n = 5000
+n = 2000
 # X = make_spiral(n=n, normalize=True)
 # X = make_2_spiral(n=n, normalize=True)
 X, _ = datasets.make_swiss_roll(n)
@@ -191,9 +188,10 @@ for i, x in enumerate(X):
 total = time.time()
 n = len(X)
 lam = 0
+d_up = None
 while lam < n - l:
     t = time.time()
-    Ci, Cj, distances = argmin_dissimilarity(C, distances)  # This returns the updated distances
+    Ci, Cj, distances = argmin_dissimilarity(C, distances, d_up)  # This returns the updated distances
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
@@ -205,6 +203,14 @@ while lam < n - l:
 
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
+
+    d_up = []
+    for Cj in C:
+        if Cj == Ci:
+            continue
+
+        if len(set(Cj.N).intersection(Ci.indices)):
+            d_up.append((Ci, Cj))
 
     lam += 1
     print('Clusters: %s/%s Merging took: %s' % (len(C), l, time.time() - t))
