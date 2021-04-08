@@ -54,7 +54,7 @@ class Cluster:
         self.d = None
 
     def update_mean(self):
-        self.M = km(self.points, len(self.points), 1e-3, 20)  # TODO Inspect this for correct maxit
+        self.M = km(self.points, len(self.points), 1e-2, 20)  # TODO Inspect this for correct maxit
         self.update_distance()
         self.update_svd()
 
@@ -204,13 +204,7 @@ while lam < n - l:
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
 
-    d_up = []
-    for Cj in C:
-        if Cj == Ci:
-            continue
-
-        if len(set(Cj.N).intersection(Ci.indices)):
-            d_up.append((Ci, Cj))
+    d_up = [(Ci, map_cluster[s]) for s in Ci.N if map_cluster[s] != Ci]
 
     lam += 1
     print('Clusters: %s/%s Merging took: %s' % (len(C), l, time.time() - t))
