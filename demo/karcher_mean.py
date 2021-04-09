@@ -34,7 +34,6 @@ def karcher_mean(P, m, eps, maxiters):
         nw = np.linalg.norm(w, ord='fro')
 
         if iters > maxiters:
-            print('Max iters reached best in %s' % lowest_iters)
             break
 
         iters += 1
@@ -42,7 +41,7 @@ def karcher_mean(P, m, eps, maxiters):
             lowest_nw = nw
             best_p_bar = p_bar
             lowest_iters = iters
-    print('Error on out: %s' % lowest_nw)
+    print('Error on out: %s Iters: %s Best in: %s' % (lowest_nw, iters, lowest_iters))
     return orth(best_p_bar)
 
 

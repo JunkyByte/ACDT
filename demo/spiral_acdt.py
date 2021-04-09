@@ -7,6 +7,7 @@ import karcher_mean
 from scipy.linalg import svd
 import pickle
 import os
+from itertools import repeat
 from datasets_util import make_spiral, make_2_spiral
 from draw_utils import draw_spiral_clusters, draw_3d_clusters
 from multiprocessing import Pool
@@ -150,15 +151,15 @@ def d_geodesic(ua, ub):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 10
-l = 60
+k = 15
+l = 12
 d = 2
 
 # dataset points
-n = 2000
+n = 5000
 # X = make_spiral(n=n, normalize=True)
 # X = make_2_spiral(n=n, normalize=True)
-X, _ = datasets.make_swiss_roll(n)
+X, _ = datasets.make_swiss_roll(n, random_state=0)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
@@ -204,7 +205,9 @@ while lam < n - l:
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
 
-    d_up = [(Ci, map_cluster[s]) for s in Ci.N if map_cluster[s] != Ci]
+    Cjs = set(map_cluster[s] for s in Ci.N)
+    Cjs.remove(Ci)
+    d_up = [(Ci, Cj) for Cj in Cjs]
 
     lam += 1
     print('Clusters: %s/%s Merging took: %s' % (len(C), l, time.time() - t))
