@@ -149,94 +149,105 @@ def d_geodesic(ua, ub):
 
 
 pool = Pool(processes=PROCESS)
+if __name__ == '__main__':
 
-# Params
-k = 15
-l = 12
-d = 2
+    # Params
+    k = 3
+    l = 5
+    d = 1
 
-# dataset points
-n = 5000
-# X = make_spiral(n=n, normalize=True)
-# X = make_2_spiral(n=n, normalize=True)
-X, _ = datasets.make_swiss_roll(n, random_state=0)
+    # dataset points
+    n = 8 
+    X = make_spiral(n=n, normalize=True)
+    # X = make_2_spiral(n=n, normalize=True)
+    # X, _ = datasets.make_swiss_roll(n, random_state=0)
+    # X, _ = datasets.make_s_curve(n, random_state=0)
 
-knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
-k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
-E = knn.kneighbors_graph(X).astype(np.int) # These are not used
-G = nx.from_scipy_sparse_matrix(E.copy(), create_using=nx.MultiGraph)
-distances = np.ones((n, n), dtype=np.float32) * -1  # This will be a triangular matrix, I'm only using upper half
+    knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
+    k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
+    E = knn.kneighbors_graph(X).astype(np.int) # These are not used
+    G = nx.from_scipy_sparse_matrix(E.copy(), create_using=nx.MultiGraph)
+    distances = np.ones((n, n), dtype=np.float32) * -1  # This will be a triangular matrix, I'm only using upper half
 
-C = []
-map_cluster = []  # Maps sample idx to cluster containing it
-for i, x in enumerate(X):
-    Nx = X[k_indices[i]]  # Take k neighbors
-    N0x = Nx - x  # Translate neighborhood to the origin
-    u_N0x, _, _ = svd(N0x, full_matrices=False, overwrite_a=True, check_finite=False)
-    M = u_N0x[:, :d]  # Take d-rank svd
-    # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
-    # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
-    C.append(Cluster(i, [x], set(knn.kneighbors([x], return_distance=False)[:, 1:].flatten()), [M], [i], M))
-    map_cluster.append(C[-1])
+    C = []
+    map_cluster = []  # Maps sample idx to cluster containing it
+    for i, x in enumerate(X):
+        Nx = X[k_indices[i]]  # Take k neighbors
+        N0x = Nx - x  # Translate neighborhood to the origin
+        u_N0x, _, _ = svd(N0x, full_matrices=False, overwrite_a=True, check_finite=False)
+        M = u_N0x[:, :d]  # Take d-rank svd
+        # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
+        # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
+        C.append(Cluster(i, [x], set(knn.kneighbors([x], return_distance=False)[:, 1:].flatten()), [M], [i], M))
+        map_cluster.append(C[-1])
 
 
-# Useful for benchmark to precompile the numba execution
-# pool.starmap(d_hat, [(C[0], C[0]) for i in range(PROCESS)])
-# km(C[0].points, 1, 1e-6, 50)
-########################################################
+    # Useful for benchmark to precompile the numba execution
+    # pool.starmap(d_hat, [(C[0], C[0]) for i in range(PROCESS)])
+    # km(C[0].points, 1, 1e-6, 50)
+    ########################################################
 
-# Clustering
-total = time.time()
-n = len(X)
-lam = 0
-d_up = None
-while lam < n - l:
-    t = time.time()
-    Ci, Cj, distances = argmin_dissimilarity(C, distances, d_up)  # This returns the updated distances
-    C.remove(Cj)
-    Ci.merge(Cj)
-    Ci.update_mean()
-    Ci.N = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
-    distances[Cj.idx, :] = -1
-    distances[:, Cj.idx] = -1
-    distances[Ci.idx, :] = -1
-    distances[:, Ci.idx] = -1
+    # Clustering
+    total = time.time()
+    n = len(X)
+    lam = 0
+    d_up = None
+    while lam < n - l:
+        t = time.time()
+        Ci, Cj, distances = argmin_dissimilarity(C, distances, d_up)  # This returns the updated distances
+        C.remove(Cj)
+        Ci.merge(Cj)
+        Ci.update_mean()
+        Ci.N = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+        distances[Cj.idx, :] = -1
+        distances[:, Cj.idx] = -1
+        distances[Ci.idx, :] = -1
+        distances[:, Ci.idx] = -1
 
-    for s_idx in Cj.indices:
-        map_cluster[s_idx] = Ci
+        for s_idx in Cj.indices:
+            map_cluster[s_idx] = Ci
 
-    Cjs = set(map_cluster[s] for s in Ci.N)
-    Cjs.remove(Ci)
-    d_up = [(Ci, Cj) for Cj in Cjs]
+        #Cjs = set(map_cluster[s] for s in Ci.N)
+        #Cjs.remove(Ci)
+        #d_up = [(Ci, Cj) for Cj in Cjs]
+        d_up = None
 
-    lam += 1
-    print('Clusters: %s/%s Merging took: %s' % (len(C), l, time.time() - t))
+        lam += 1
+        print('Clusters: %s/%s Merging took: %s' % (len(C), l, time.time() - t))
 
-# Close multiprocessing pools
-pool.close()
-karcher_mean.pool.close()
+        np.set_printoptions(precision=3)
+        print(distances)
+        if lam % max(1, n // 10) == 0:
+            if X.shape[1] == 2:
+                draw_spiral_clusters(C, k, False)
+            if X.shape[1] == 3:
+                draw_3d_clusters(C)
 
-for Ci in C:
-    samples = np.array(Ci.X).T
-    mean_pos = np.mean(samples, axis=1, keepdims=True)
-    C0mi = samples - mean_pos
-    u_C0mi, s, _ = svd(C0mi, full_matrices=False)
-    Ci.F = u_C0mi[:, :d]
+    # Close multiprocessing pools
+    pool.close()
+    karcher_mean.pool.close()
 
-print(time.time() - total)
+    for Ci in C:
+        samples = np.array(Ci.X).T
+        mean_pos = np.mean(samples, axis=1, keepdims=True)
+        C0mi = samples - mean_pos
+        u_C0mi, s, _ = svd(C0mi, full_matrices=False)
+        Ci.F = u_C0mi[:, :d]
 
-# Save the data for further visualization
-data = {
-    'C': C,
-    'knn': knn
-}
+    print(time.time() - total)
 
-PATH = './saved/'
-os.makedirs(PATH, exist_ok=True)
-with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
-    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+    # Save the data for further visualization
+    data = {
+        'C': C,
+        'knn': knn
+    }
 
-if X.shape[1] == 2:
-    draw_spiral_clusters(C, k)
-if X.shape[1] == 3:
-    draw_3d_clusters(C)
+    PATH = './saved/'
+    os.makedirs(PATH, exist_ok=True)
+    with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
+        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    if X.shape[1] == 2:
+        draw_spiral_clusters(C, k)
+    if X.shape[1] == 3:
+        draw_3d_clusters(C)
