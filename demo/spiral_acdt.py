@@ -44,22 +44,18 @@ class Cluster:
 
 
 def argmin_dissimilarity(C, knn):
-    Ci_min = None
-    Cj_min = None
-
     t = time.time()
     pairs = {}
     for Ci in C:
         neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
         neigh_c = [map_cluster[n] for n in neigh]
         pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
-    pairs = sum(pairs.values(), [])  # Single list of pairs
+    pairs = list(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
     print('Checking %s valid mergings' % len(pairs))
     print('Time to generate valid mergings:', time.time() - t)
 
     t = time.time()
-    # min_idx = np.argmin(pool.starmap(d_hat, pairs))
-    min_idx = np.argmin([d_hat(Ci, Cj) for Ci, Cj in pairs])  # Might be faster on small data
+    min_idx = np.argmin(pool.starmap(d_hat, pairs))
     print('Time to argmin distance:', time.time() - t)
 
     return pairs[min_idx]
@@ -141,6 +137,7 @@ while lam < n - l:
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
+    print(C[C.index(Ci)].indices, Ci.indices)
 
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
@@ -148,6 +145,7 @@ while lam < n - l:
     lam += 1
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
+    print(sum(len(Ci.indices) for Ci in C), n)
 
 # Close multiprocessing pools
 # pool.close()
