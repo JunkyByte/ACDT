@@ -86,7 +86,7 @@ def d_geodesic(x, y):
     # This is unstable numerically but the error should be negligible here
     ua, sa, vha = scipy.linalg.svd(x)
     ub, sb, vhb = scipy.linalg.svd(y)
-    ua_smaller = ua[:, :sa.shape[0]]
+    ua_smaller = ua[:, :sa.shape[0]]  # CHECK THIS IN D>1 TODO
     ub_smaller = ub[:, :sa.shape[0]]
     QaTQb = np.dot(ua_smaller.T, ub_smaller)
     uQaTQb, sQaTQb, vhQaTQb = scipy.linalg.svd(QaTQb)
@@ -98,12 +98,12 @@ def d_geodesic(x, y):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 15
-l = 60
-d = 1
+k = 6
+l = 20
+d = 2
 
 # dataset points
-n = 100
+n = 1000
 # X = make_spiral(n=n, normalize=True)
 # X = make_2_spiral(n=n, normalize=True)
 X, _ = datasets.make_swiss_roll(n)
@@ -118,6 +118,9 @@ map_cluster = []  # Maps sample idx to cluster containing it
 for i, x in enumerate(X):
     Nx = X[k_indices[i]]  # Take k neighbors
     N0x = Nx - x  # Translate neighborhood to the origin
+
+    N0x = N0x.T
+
     u_N0x, _, _ = scipy.linalg.svd(N0x, full_matrices=False)
     M = u_N0x[:, :d]  # Take d-rank svd
     # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
@@ -133,7 +136,6 @@ while lam < n - l:
     t = time.time()
     Ci, Cj = argmin_dissimilarity(C, knn)
     print('Merged: %s with %s' % (Ci.indices, Cj.indices))
-    t = time.time()
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
@@ -146,6 +148,18 @@ while lam < n - l:
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
     print(sum(len(Ci.indices) for Ci in C), n)
+
+    if len(C) < 100 and lam % 10 == 0:
+        for Ci in C:
+            samples = np.array(Ci.X).T
+            mean_pos = np.mean(samples, axis=1, keepdims=True)
+            C0mi = samples - mean_pos
+            u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
+            Ci.F = u_C0mi[:, :d]
+        if X.shape[1] == 2:
+            draw_spiral_clusters(C, k)
+        if X.shape[1] == 3:
+            draw_3d_clusters(C)
 
 # Close multiprocessing pools
 # pool.close()
@@ -171,7 +185,7 @@ print(time.time() - total)
 # with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
 #     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 # 
-# if X.shape[1] == 2:
-#     draw_spiral_clusters(C, k)
-# if X.shape[1] == 3:
-#     draw_3d_clusters(C)
+if X.shape[1] == 2:
+    draw_spiral_clusters(C, k)
+if X.shape[1] == 3:
+    draw_3d_clusters(C)
