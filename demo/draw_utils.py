@@ -4,7 +4,6 @@ import random
 import matplotlib.cm
 import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
-cmap = matplotlib.cm.get_cmap('rainbow')
 
 
 def draw_spiral_clusters(C, k):
@@ -84,6 +83,6 @@ def draw_3d_clusters(C):
         z = z[mask]
 
         plt.autoscale(False)
-        ax.plot_surface(xx + p[0], yy + p[1], z + p[2], color=colors[i], alpha=0.2)
+        ax.plot_surface(xx + p[0], yy + p[1], z + p[2], color=colors[i], alpha=0.25, shade=False)
 
     plt.show()

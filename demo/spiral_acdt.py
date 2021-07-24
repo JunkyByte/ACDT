@@ -86,9 +86,7 @@ def d_geodesic(x, y):
     # This is unstable numerically but the error should be negligible here
     ua, sa, vha = scipy.linalg.svd(x)
     ub, sb, vhb = scipy.linalg.svd(y)
-    ua_smaller = ua[:, :sa.shape[0]]  # CHECK THIS IN D>1 TODO
-    ub_smaller = ub[:, :sa.shape[0]]
-    QaTQb = np.dot(ua_smaller.T, ub_smaller)
+    QaTQb = np.dot(ua.T, ub)
     uQaTQb, sQaTQb, vhQaTQb = scipy.linalg.svd(QaTQb)
     sQaTQb.clip(0, 1, out=sQaTQb)
     thetas = np.arccos(sQaTQb)
@@ -98,15 +96,15 @@ def d_geodesic(x, y):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 6
+k = 4
 l = 20
-d = 2
+d = 1
 
 # dataset points
-n = 1000
+n = 200
 # X = make_spiral(n=n, normalize=True)
-# X = make_2_spiral(n=n, normalize=True)
-X, _ = datasets.make_swiss_roll(n)
+X = make_2_spiral(n=n, normalize=True)
+# X, _ = datasets.make_swiss_roll(n)
 
 knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
@@ -135,11 +133,11 @@ lam = 0
 while lam < n - l:
     t = time.time()
     Ci, Cj = argmin_dissimilarity(C, knn)
-    print('Merged: %s with %s' % (Ci.indices, Cj.indices))
+    # print('Merged: %s with %s' % (Ci.indices, Cj.indices))
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
-    print(C[C.index(Ci)].indices, Ci.indices)
+    # print(C[C.index(Ci)].indices, Ci.indices)
 
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
@@ -147,19 +145,18 @@ while lam < n - l:
     lam += 1
     print('Total Clusters: %s' % len(C))
     print('Time for this merge: %s' % (time.time() - t))
-    print(sum(len(Ci.indices) for Ci in C), n)
 
-    if len(C) < 100 and lam % 10 == 0:
-        for Ci in C:
-            samples = np.array(Ci.X).T
-            mean_pos = np.mean(samples, axis=1, keepdims=True)
-            C0mi = samples - mean_pos
-            u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
-            Ci.F = u_C0mi[:, :d]
-        if X.shape[1] == 2:
-            draw_spiral_clusters(C, k)
-        if X.shape[1] == 3:
-            draw_3d_clusters(C)
+    # if len(C) < 100 and lam % 10 == 0:
+    #     for Ci in C:
+    #         samples = np.array(Ci.X).T
+    #         mean_pos = np.mean(samples, axis=1, keepdims=True)
+    #         C0mi = samples - mean_pos
+    #         u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
+    #         Ci.F = u_C0mi[:, :d]
+    #     if X.shape[1] == 2:
+    #         draw_spiral_clusters(C, k)
+    #     if X.shape[1] == 3:
+    #         draw_3d_clusters(C)
 
 # Close multiprocessing pools
 # pool.close()
@@ -185,7 +182,7 @@ print(time.time() - total)
 # with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
 #     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 # 
-if X.shape[1] == 2:
-    draw_spiral_clusters(C, k)
-if X.shape[1] == 3:
-    draw_3d_clusters(C)
+# if X.shape[1] == 2:
+#     draw_spiral_clusters(C, k)
+# if X.shape[1] == 3:
+#     draw_3d_clusters(C)
