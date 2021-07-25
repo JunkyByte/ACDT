@@ -12,6 +12,7 @@ from draw_utils import draw_spiral_clusters, draw_3d_clusters
 from multiprocessing import Pool
 from karcher_mean import karcher_mean as km
 from sklearn.neighbors import NearestNeighbors
+from numba import njit
 PROCESS = os.cpu_count()
 
 
@@ -43,27 +44,26 @@ class Cluster:
         return len(self.points)
 
 
-def argmin_dissimilarity(C, knn):
-    t = time.time()
-    pairs = {}
-    for Ci in C:
-        neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
-        neigh_c = [map_cluster[n] for n in neigh]
-        pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
-    pairs = list(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
-    print('Checking %s valid mergings' % len(pairs))
-    print('Time to generate valid mergings:', time.time() - t)
-
-    t = time.time()
-    min_idx = np.argmin(pool.starmap(d_hat, pairs))
-    print('Time to argmin distance:', time.time() - t)
-
-    return pairs[min_idx]
+@njit(cache=True)
+def argmin_dissimilarity(D):
+    n, m = D.shape
+    min_v = np.inf
+    min_idx = (-1, -1)
+    for i in range(n):
+        for j in range(i, m):
+            x = D[i, j]
+            if x == -1:
+                continue
+            if x < min_v:
+                min_v = x
+                min_idx = (i, j)
+    return min_idx
 
 
 def d_hat(Ci, Cj):
     d_mean = d_geodesic(Ci.M, Cj.M)
     d = (len(Ci) + len(Cj)) * (d_mean ** 2) + 2 * d_mean * (Ci.d + Cj.d)
+    print(d, len(Ci), len(Cj), d_mean, Ci.d, Cj.d)
     return d
 
 
@@ -96,12 +96,12 @@ def d_geodesic(x, y):
 pool = Pool(processes=PROCESS)
 
 # Params
-k = 4
-l = 20
+k = 5
+l = 15
 d = 1
 
 # dataset points
-n = 200
+n = 300
 # X = make_spiral(n=n, normalize=True)
 X = make_2_spiral(n=n, normalize=True)
 # X, _ = datasets.make_swiss_roll(n)
@@ -110,6 +110,7 @@ knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
 k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
 E = knn.kneighbors_graph(X).astype(np.int) # These are not used
 G = nx.from_scipy_sparse_matrix(E.copy(), create_using=nx.MultiGraph)
+D = np.ones((n, n)) * -1
 
 C = []
 map_cluster = []  # Maps sample idx to cluster containing it
@@ -126,21 +127,56 @@ for i, x in enumerate(X):
     C.append(Cluster([x], [M], [i], M))
     map_cluster.append(C[-1])
 
+# Precompute all the distances and populate D
+pairs = {}
+for Ci in C:
+    neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+    neigh_c = set([map_cluster[n] for n in neigh])
+    pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
+pairs = list(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
+
+for Ci, Cj in pairs:
+    i, j = C.index(Ci), C.index(Cj)
+    i, j = min(i, j), max(i, j)  # So that we always populate upper part
+    assert j > i  # TODO
+
+    D[i, j] = d_hat(Ci, Cj)
+
 # Clustering
 total = time.time()
 n = len(X)
 lam = 0
 while lam < n - l:
     t = time.time()
-    Ci, Cj = argmin_dissimilarity(C, knn)
+    i, j = argmin_dissimilarity(D)
+    i, j = min(i, j), max(i, j)
+    Ci, Cj = C[i], C[j]
+
     # print('Merged: %s with %s' % (Ci.indices, Cj.indices))
     C.remove(Cj)
     Ci.merge(Cj)
     Ci.update_mean()
-    # print(C[C.index(Ci)].indices, Ci.indices)
 
     for s_idx in Cj.indices:
         map_cluster[s_idx] = Ci
+
+    # np.set_printoptions(precision=4, suppress=True)
+    # print(D)
+
+    # Update distances
+    D = np.delete(np.delete(D, j, axis=1), j, axis=0)  # Delete column and row j
+    print('Deleted row and column j?', j)
+
+    # Now for each connection of Ci update the distance
+    neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+    neigh_c = set([map_cluster[n] for n in neigh])
+    pairs = [(Ci, Cj) for Cj in neigh_c if Ci != Cj]
+    print('Ci has to update', len(pairs))
+
+    for Ci, Cj in pairs:
+        i, j = C.index(Ci), C.index(Cj)
+        i, j = min(i, j), max(i, j)  # So that we always populate upper part
+        D[i, j] = d_hat(Ci, Cj)
 
     lam += 1
     print('Total Clusters: %s' % len(C))
@@ -182,7 +218,7 @@ print(time.time() - total)
 # with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
 #     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 # 
-# if X.shape[1] == 2:
-#     draw_spiral_clusters(C, k)
-# if X.shape[1] == 3:
-#     draw_3d_clusters(C)
+if X.shape[1] == 2:
+    draw_spiral_clusters(C, k)
+if X.shape[1] == 3:
+    draw_3d_clusters(C)
