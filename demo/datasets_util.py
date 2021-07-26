@@ -18,7 +18,7 @@ def make_spiral_old(n=100, normalize=False):
 
 def make_spiral(n=100, normalize=False):
     theta = np.radians(np.linspace(90, 360 * 4, n))
-    theta *= np.geomspace(1, 2.3, n)[::-1]
+    theta *= np.geomspace(1, 2.4, n)[::-1]
     r = theta ** 2
     x = r * np.cos(theta)
     y = r * np.sin(theta)

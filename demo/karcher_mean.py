@@ -38,7 +38,8 @@ def karcher_mean(P, m, eps, maxiters):
         lowest_nw = nw
         best_p_bar = p_bar
         iters += 1
-    print('Error on out: %s' % nw)
+
+    #print('Error on out: %s' % nw)
     return linalg.orth(best_p_bar)
 
 
