@@ -14,7 +14,7 @@ from sklearn.neighbors import NearestNeighbors
 from numba import njit
 from tqdm import tqdm
 PROCESS = os.cpu_count()
-DEL_N = 1000
+DEL_N = 10000
 
 
 class Cluster:
@@ -105,119 +105,119 @@ def d_geodesic(x, y):
     return np.linalg.norm(thetas, ord=2)
 
 
-# Params
-k = 4
-l = 20
-d = 1
+if __name__ == '__main__':
+    # Params
+    k = 8
+    l = 60
+    d = 2
 
-# dataset points
-n = 1000
-# X = make_spiral(n=n, normalize=True)
-X = make_2_spiral(n=n, normalize=True)
-# X, _ = datasets.make_swiss_roll(n)
+    # dataset points
+    n = 2000
+    # X = make_spiral(n=n, normalize=True)
+    # X = make_2_spiral(n=n, normalize=True)
+    X, _ = datasets.make_swiss_roll(n)
 
-knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
-k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
-E = knn.kneighbors_graph(X).astype(np.int)  # These are not used
-G = nx.from_scipy_sparse_matrix(E.copy(), create_using=nx.MultiGraph)
-D = np.ones((n, n)) * -1
+    knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
+    k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
+    E = knn.kneighbors_graph(X).astype(np.int)  # These are not used
+    G = nx.from_scipy_sparse_matrix(E.copy(), create_using=nx.MultiGraph)
+    D = np.ones((n, n)) * -1
 
-C = []
-map_cluster = []  # Maps sample idx to cluster containing it
-for i, x in enumerate(X):
-    Nx = X[k_indices[i]]  # Take k neighbors
-    N0x = Nx - x  # Translate neighborhood to the origin
-    N0x = N0x.T
-    u_N0x, _, _ = scipy.linalg.svd(N0x, full_matrices=False)
-    M = u_N0x[:, :d]  # Take d-rank svd
-    # u_N0x, s, vh = np.linalg.svd(N0x, full_matrices=False)  # Check reconstruction
-    # print(np.linalg.norm(N0x - np.dot(u_N0x[:, :d] * s[:d], vh[:d, :])))
-    C.append(Cluster([x], [M], [i], M))
-    map_cluster.append(C[-1])
+    C = []
+    map_cluster = []  # Maps sample idx to cluster containing it
+    for i, x in enumerate(X):
+        Nx = X[k_indices[i]]  # Take k neighbors
+        N0x = Nx - x  # Translate neighborhood to the origin
+        N0x = N0x.T
+        u_N0x, _, _ = scipy.linalg.svd(N0x, full_matrices=False)
+        M = u_N0x[:, :d]  # Take d-rank svd
+        C.append(Cluster([x], [M], [i], M))
+        map_cluster.append(C[-1])
 
-# Precompute all the distances and populate D
-pairs = {}
-for Ci in C:
-    neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
-    neigh_c = set([map_cluster[n] for n in neigh])
-    pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
-pairs = list(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
-
-for Ci, Cj in pairs:
-    i, j = C.index(Ci), C.index(Cj)
-    i, j = min(i, j), max(i, j)  # So that we always populate upper part
-    D[i, j] = d_hat(Ci, Cj)
-
-# Clustering
-total = time.time()
-n = len(X)
-lam = 0
-
-for lam in tqdm(range(n, l, -1)):
-    i, j = argmin_dissimilarity(D, len(C))
-    i, j = min(i, j), max(i, j)
-    Ci, Cj = C[i], C[j]
-
-    # print('Merged: %s with %s' % (Ci.indices, Cj.indices))
-    C.remove(Cj)
-    Ci.merge(Cj)
-    Ci.update_mean()
-
-    for s_idx in Cj.indices:
-        map_cluster[s_idx] = Ci
-
-    # Update distances
-    D = delete_rowcolumn(D, j)  # Delete (offset all to left to skip it) column and row j
-    if (D.shape[0] - len(C)) % DEL_N == 0:
-        D = D[:-DEL_N, :-DEL_N]
-
-    # Now for each connection of Ci update the distance
-    neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
-    neigh_c = set([map_cluster[n] for n in neigh])
-    pairs = [(Ci, Cj) for Cj in neigh_c if Ci != Cj]
+    # Precompute all the distances and populate D
+    pairs = {}
+    for Ci in C:
+        neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+        neigh_c = set([map_cluster[n] for n in neigh])
+        pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
+    pairs = list(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
 
     for Ci, Cj in pairs:
         i, j = C.index(Ci), C.index(Cj)
         i, j = min(i, j), max(i, j)  # So that we always populate upper part
         D[i, j] = d_hat(Ci, Cj)
 
-    # print('Total Clusters: %s' % len(C))
+    # Clustering
+    total = time.time()
+    n = len(X)
+    lam = 0
 
-    # if len(C) < 100 and lam % 10 == 0:
-    #     for Ci in C:
-    #         samples = np.array(Ci.X).T
-    #         mean_pos = np.mean(samples, axis=1, keepdims=True)
-    #         C0mi = samples - mean_pos
-    #         u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
-    #         Ci.F = u_C0mi[:, :d]
-    #     if X.shape[1] == 2:
-    #         draw_spiral_clusters(C, k)
-    #     if X.shape[1] == 3:
-    #         draw_3d_clusters(C)
+    for lam in tqdm(range(n, l, -1)):
+        i, j = argmin_dissimilarity(D, len(C))
+        i, j = min(i, j), max(i, j)
+        Ci, Cj = C[i], C[j]
 
-karcher_mean.pool.close()
+        # print('Merged: %s with %s' % (Ci.indices, Cj.indices))
+        C.remove(Cj)
+        Ci.merge(Cj)
+        Ci.update_mean()
 
-for Ci in C:
-    samples = np.array(Ci.X).T
-    mean_pos = np.mean(samples, axis=1, keepdims=True)
-    C0mi = samples - mean_pos
-    u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
-    Ci.F = u_C0mi[:, :d]
+        for s_idx in Cj.indices:
+            map_cluster[s_idx] = Ci
 
-print(time.time() - total)
+        # Update distances
+        D = delete_rowcolumn(D, j)  # Delete (offset all to left to skip it) column and row j
+        if (D.shape[0] - len(C)) % DEL_N == 0:
+            D = D[:-DEL_N, :-DEL_N]
 
-# Save the data for further visualization
-# data = {
-#     'C': C,
-#     'knn': knn
-# }
-#
-# PATH = './saved/'
-# os.makedirs(PATH, exist_ok=True)
-# with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
-#     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-#
-if X.shape[1] == 2:
-    draw_spiral_clusters(C, k)
-if X.shape[1] == 3:
-    draw_3d_clusters(C)
+        # Now for each connection of Ci update the distance
+        neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+        neigh_c = set([map_cluster[n] for n in neigh])
+        pairs = [(Ci, Cj) for Cj in neigh_c if Ci != Cj]
+
+        for Ci, Cj in pairs:
+            i, j = C.index(Ci), C.index(Cj)
+            i, j = min(i, j), max(i, j)  # So that we always populate upper part
+            D[i, j] = d_hat(Ci, Cj)
+
+        # print('Total Clusters: %s' % len(C))
+
+        # if len(C) < 100 and lam % 10 == 0:
+        #     for Ci in C:
+        #         samples = np.array(Ci.X).T
+        #         mean_pos = np.mean(samples, axis=1, keepdims=True)
+        #         C0mi = samples - mean_pos
+        #         u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
+        #         Ci.F = u_C0mi[:, :d]
+        #     if X.shape[1] == 2:
+        #         draw_spiral_clusters(C, k)
+        #     if X.shape[1] == 3:
+        #         draw_3d_clusters(C)
+
+    karcher_mean.pool.close()
+
+    for Ci in C:
+        samples = np.array(Ci.X).T
+        mean_pos = np.mean(samples, axis=1, keepdims=True)
+        C0mi = samples - mean_pos
+        u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
+        Ci.F = u_C0mi[:, :d]
+
+    print(time.time() - total)
+
+    # Save the data for further visualization
+    data = {
+        'C': C,
+        'knn': knn,
+        'X': X
+    }
+
+    PATH = './saved/'
+    os.makedirs(PATH, exist_ok=True)
+    with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
+        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+    #
+    if X.shape[1] == 2:
+        draw_spiral_clusters(C, k)
+    if X.shape[1] == 3:
+        draw_3d_clusters(C)
