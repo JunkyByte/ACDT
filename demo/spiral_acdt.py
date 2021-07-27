@@ -1,20 +1,20 @@
-import time
-import numpy as np
 import itertools
-import networkx as nx
-import sklearn.datasets as datasets
-import karcher_mean
-import scipy.linalg
-import pickle
 import os
-from datasets_util import make_spiral, make_2_spiral
-from draw_utils import draw_spiral_clusters, draw_3d_clusters
-from karcher_mean import karcher_mean as km
+import pickle
+import copy
+import time
+import networkx as nx
+import numpy as np
+import sklearn.datasets as datasets
+import scipy.linalg
+import karcher_mean
 from sklearn.neighbors import NearestNeighbors
 from numba import njit
 from tqdm import tqdm
+from datasets_util import make_spiral, make_2_spiral
+from draw_utils import draw_3d_clusters, draw_spiral_clusters
+from karcher_mean import karcher_mean as km
 PROCESS = os.cpu_count()
-DEL_N = 10000
 
 
 class Cluster:
@@ -48,7 +48,7 @@ class Cluster:
 @njit(cache=True)
 def argmin_dissimilarity(D, l):
     n, m = D.shape
-    l = (m - l) % DEL_N
+    l = m - l
     min_v = np.inf
     min_idx = (-1, -1)
     for i in range(n - l):
@@ -68,12 +68,14 @@ def d_hat(Ci, Cj):
     return d
 
 
-def delete_rowcolumn(X, i):
-    X[:i, i:-1] = X[:i, i+1:]
-    X[i:-1,:i] = X[i+1:, :i]
-    X[i:-1,i:-1] = X[i+1:, i+1:]
-    X[-1,:] = -1
-    X[:,-1] = -1
+def delete_rowcolumn(X, i, l):
+    l = X.shape[0] - l
+    e = -l + 1 if -l + 1 != 0 else X.shape[0]
+    X[:i, i:-l] = X[:i, i + 1:e]
+    X[i:-l, :i] = X[i + 1:e, :i]
+    X[i:-l, i:-l] = X[i + 1:e, i + 1:e]
+    X[-1, :] = -1
+    X[:, -1] = -1
     return X
 
 
@@ -107,15 +109,21 @@ def d_geodesic(x, y):
 
 if __name__ == '__main__':
     # Params
-    k = 8
-    l = 60
-    d = 2
+    k = 5
+    l = 3
+    d = 1
 
     # dataset points
-    n = 2000
-    # X = make_spiral(n=n, normalize=True)
-    # X = make_2_spiral(n=n, normalize=True)
-    X, _ = datasets.make_swiss_roll(n)
+    n = 500
+    # X = make_spiral(n=n)
+    # X = make_2_spiral(n=n)
+    # X, _ = datasets.make_circles(n)
+    # X, _ = datasets.make_swiss_roll(n)
+    X, _ = datasets.make_s_curve(n)
+
+    X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+
+    checkpoints = {}
 
     knn = NearestNeighbors(n_neighbors=k + 1, metric='euclidean').fit(X)
     k_indices = knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
@@ -150,10 +158,10 @@ if __name__ == '__main__':
     # Clustering
     total = time.time()
     n = len(X)
-    lam = 0
 
-    for lam in tqdm(range(n, l, -1)):
+    for _ in tqdm(range(n, l, -1)):
         i, j = argmin_dissimilarity(D, len(C))
+        assert i != -1 and j != -1, 'No clusters can be merged, probably k is too low'
         i, j = min(i, j), max(i, j)
         Ci, Cj = C[i], C[j]
 
@@ -166,9 +174,7 @@ if __name__ == '__main__':
             map_cluster[s_idx] = Ci
 
         # Update distances
-        D = delete_rowcolumn(D, j)  # Delete (offset all to left to skip it) column and row j
-        if (D.shape[0] - len(C)) % DEL_N == 0:
-            D = D[:-DEL_N, :-DEL_N]
+        D = delete_rowcolumn(D, j, len(C))  # Delete (offset all to left to skip it) column and row j
 
         # Now for each connection of Ci update the distance
         neigh = set(knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
@@ -182,17 +188,18 @@ if __name__ == '__main__':
 
         # print('Total Clusters: %s' % len(C))
 
-        # if len(C) < 100 and lam % 10 == 0:
-        #     for Ci in C:
-        #         samples = np.array(Ci.X).T
-        #         mean_pos = np.mean(samples, axis=1, keepdims=True)
-        #         C0mi = samples - mean_pos
-        #         u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
-        #         Ci.F = u_C0mi[:, :d]
-        #     if X.shape[1] == 2:
-        #         draw_spiral_clusters(C, k)
-        #     if X.shape[1] == 3:
-        #         draw_3d_clusters(C)
+        if len(C) < 100 and len(C) % 2 == 0:
+            for Ci in C:
+                samples = np.array(Ci.X).T
+                mean_pos = np.mean(samples, axis=1, keepdims=True)
+                C0mi = samples - mean_pos
+                u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
+                Ci.F = u_C0mi[:, :d]
+            data = {
+                'C': copy.deepcopy(C),
+                'knn': copy.deepcopy(knn),
+            }
+            checkpoints[len(C)] = data
 
     karcher_mean.pool.close()
 
@@ -205,18 +212,11 @@ if __name__ == '__main__':
 
     print(time.time() - total)
 
-    # Save the data for further visualization
-    data = {
-        'C': C,
-        'knn': knn,
-        'X': X
-    }
-
     PATH = './saved/'
     os.makedirs(PATH, exist_ok=True)
     with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
-        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-    #
+        pickle.dump(checkpoints, f, protocol=pickle.HIGHEST_PROTOCOL)
+
     if X.shape[1] == 2:
         draw_spiral_clusters(C, k)
     if X.shape[1] == 3:

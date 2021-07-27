@@ -26,7 +26,7 @@ def draw_spiral_clusters(C, k):
 
         length_x = max(np.abs(np.max(Ci.X, axis=0)[0] - np.min(Ci.X, axis=0)[0]), 0.1)
         length_y = max(np.abs(np.max(Ci.X, axis=0)[1] - np.min(Ci.X, axis=0)[1]), 0.1)
-        pts = [-100000, 100000]
+        pts = [-10, 10]
         xs = np.clip(pts * flat[0], -length_x / 2, length_x / 2)
         ys = np.clip(pts * flat[1], -length_y / 2, length_y / 2)
         plt.autoscale(False)
@@ -70,14 +70,14 @@ def draw_3d_clusters(C):
 
         d = -point.dot(normal)
 
-        xx, yy = np.meshgrid(range(-10000, 10000, 1000), range(-10000, 10000, 1000))
+        xx, yy = np.meshgrid(range(-10000, 10000, 5000), range(-10000, 10000, 5000))
         length_x = max(np.abs(np.max(Ci.X, axis=0)[0] - np.min(Ci.X, axis=0)[0]), 0.1)
         length_y = max(np.abs(np.max(Ci.X, axis=0)[1] - np.min(Ci.X, axis=0)[1]), 0.1)
         length_z = max(np.abs(np.max(Ci.X, axis=0)[2] - np.min(Ci.X, axis=0)[2]), 0.1)
         xx = np.clip(xx, -length_x / 2, length_x / 2)
         yy = np.clip(yy, -length_y / 2, length_y / 2)
         z = (-normal[0] * xx - normal[1] * yy - d) * 1. / normal[2]
-        mask = np.where((z > -length_z / 2) & (z < length_z / 2))[0]
+        mask = np.where((z - p[2] > -length_z / 2) & (z < length_z / 2))[0]
         xx = xx[mask]
         yy = yy[mask]
         z = z[mask]
