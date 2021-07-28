@@ -1,3 +1,4 @@
+import os
 import copy
 import numpy as np
 import itertools
@@ -7,6 +8,13 @@ from tqdm import tqdm
 from karcher_mean import karcher_mean as km
 from draw_utils import draw_3d_clusters, draw_spiral_clusters
 from sklearn.neighbors import NearestNeighbors
+from multiprocessing import Pool
+
+
+def d_hat(Ci, Cj):
+    d_mean = d_geodesic(Ci.M, Cj.M)
+    d = (len(Ci) + len(Cj)) * (d_mean ** 2) + 2 * d_mean * (Ci.d + Cj.d)
+    return d
 
 
 def d_geodesic(x, y):
@@ -113,6 +121,8 @@ class ACDT:
         self.store_every = store_every
         self.visualize = visualize
         self.checkpoints = {}
+        PROCESS = os.cpu_count()
+        self.pool = Pool(processes=PROCESS)
 
         self.knn = NearestNeighbors(n_neighbors=self.k + 1, metric='euclidean').fit(X)
         k_indices = self.knn.kneighbors(X, return_distance=False)[:, 1:]  # Compute k-nearest neighbors indices
@@ -138,16 +148,12 @@ class ACDT:
             pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
         pairs = list(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
 
-        for Ci, Cj in pairs:
+        distances = self.pool.starmap(d_hat, pairs)
+        for ith, (Ci, Cj) in enumerate(pairs):
             i, j = self.C.index(Ci), self.C.index(Cj)
             i, j = min(i, j), max(i, j)  # So that we always populate upper part
-            self.D[i, j] = self.d_hat(Ci, Cj)
+            self.D[i, j] = distances[ith]
         print('Computed %s distances' % np.count_nonzero(self.D != -1))
-
-    def d_hat(self, Ci, Cj):
-        d_mean = d_geodesic(Ci.M, Cj.M)
-        d = (len(Ci) + len(Cj)) * (d_mean ** 2) + 2 * d_mean * (Ci.d + Cj.d)
-        return d
 
     def fusible(self, Ci, Cj):
         """
@@ -187,7 +193,7 @@ class ACDT:
             for Ci, Cj in pairs:
                 i, j = self.C.index(Ci), self.C.index(Cj)
                 i, j = min(i, j), max(i, j)  # So that we always populate upper part
-                self.D[i, j] = self.d_hat(Ci, Cj)
+                self.D[i, j] = d_hat(Ci, Cj)
 
             if self.store_every != 0 and len(self.C) < self.minimum_ckpt and len(self.C) % self.store_every == 0:
                 for Ci in self.C:
