@@ -8,14 +8,15 @@ from numpy import pi
 
 def load_bsds(path, n=10000):
     images = [cv2.imread(os.path.join(path, f)) for f in os.listdir(path)]
-    images = images[:20]  # TODO ?
+    images = images[:20]
     # images = [cv2.resize(im, (im.shape[1] // 4, im.shape[0] // 4)) for im in images]
-    images = [cv2.cvtColor(im, cv2.COLOR_BGR2GRAY) for im in images]
+    # images = [cv2.cvtColor(im, cv2.COLOR_BGR2GRAY) for im in images]
     images = np.array([image.extract_patches_2d(im, (8, 8), max_patches=n // len(images) + 1) for im in images])
     # for img in images:
     #     cv2.imshow('', img)
     #     cv2.waitKey(100)
-    images = images.reshape((-1, 8 * 8))[:n]
+    images = images.reshape((-1, 8 * 8 * 3))[:n]
+    assert len(images) == n
     return images
 
 def make_spiral(n=100):

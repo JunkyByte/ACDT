@@ -11,21 +11,21 @@ np.random.seed(42)
 
 if __name__ == '__main__':
     # BSDS
-    # n = 10000
-    # k = 100
-    # l = 15
-    # d = 16
-    # X = load_bsds('../data/BSDS300/images/train/', n)
-    # X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+    n = 10000
+    k = 100
+    l = 5
+    d = 16
+    X = load_bsds('../data/BSDS300/images/train/', n)
+    X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
 
     # S curve and Swiss roll
-    n = 5000
-    k = 15
-    l = 2
-    d = 2
-    X, _ = datasets.make_s_curve(n)
+    # n = 5000
+    # k = 15
+    # l = 2
+    # d = 2
+    # X, _ = datasets.make_s_curve(n)
     # X, _ = datasets.make_swiss_roll(n)
-    X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+    # X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
 
     # 2d datasets
     # n = 500
