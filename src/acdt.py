@@ -1,4 +1,5 @@
 import os
+import time
 import copy
 import numpy as np
 import itertools
@@ -60,11 +61,12 @@ def delete_rowcolumn(D, i, l):
     """
     l = D.shape[0] - l
     e = -l + 1 if -l + 1 != 0 else D.shape[0]
+
     D[:i, i:-l] = D[:i, i + 1:e]
     D[i:-l, :i] = D[i + 1:e, :i]
     D[i:-l, i:-l] = D[i + 1:e, i + 1:e]
-    D[-1, :] = -1
-    D[:, -1] = -1
+    D[-l, :] = -1
+    D[:, -l] = -1
     return D
 
 
@@ -88,12 +90,18 @@ class Cluster:
         self.M = None
         self.d = None
 
-    def update_mean(self):
-        self.M = km(self.points, len(self.points), 1e-6, 50)  # TODO
-        self.update_distance()
+    def update_mean(self, pool=None):
+        t = time.time()
+        iters = 5 if len(self.points) < 500 else 1
+        self.M = km(self.points, len(self.points), 1e-6, iters, pool)  # TODO
+        print(time.time() - t, len(self.points))
+        self.update_distance(pool=pool)
 
-    def update_distance(self):
-        self.d = sum([d_geodesic(self.M, Mx) for Mx in self.points])
+    def update_distance(self, pool=None):
+        if pool is None:
+            self.d = sum([d_geodesic(self.M, Mx) for Mx in self.points])
+        else:
+            self.d = sum(pool.starmap(d_geodesic, ((self.M, Mx) for Mx in self.points)))
 
     def __len__(self):
         return len(self.points)
@@ -120,7 +128,7 @@ class ACDT:
         self.minimum_ckpt = minimum_ckpt
         self.store_every = store_every
         self.visualize = visualize
-        self.checkpoints = {}
+        self.checkpoints = {'knn': self.k}
         PROCESS = os.cpu_count()
         self.pool = Pool(processes=PROCESS)
 
@@ -145,8 +153,8 @@ class ACDT:
         for Ci in self.C:
             neigh = set(self.knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
             neigh_c = set([self.map_cluster[n] for n in neigh])
-            pairs[Ci] = [(Ci, Cj) for Cj in neigh_c if Cj not in pairs.keys() and Ci != Cj]  # This skips already merged clusters
-        pairs = list(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
+            pairs[Ci] = [(Ci, Cj) if self.C.index(Ci) < self.C.index(Cj) else (Cj, Ci) for Cj in neigh_c if Ci != Cj]
+        pairs = set(itertools.chain.from_iterable(pairs.values()))  # Single list of pairs
 
         distances = self.pool.starmap(d_hat, pairs)
         for ith, (Ci, Cj) in enumerate(pairs):
@@ -171,13 +179,32 @@ class ACDT:
     def fit(self):
         for _ in tqdm(range(self.n, self.l, -1)):
             i, j = argmin_dissimilarity(self.D, len(self.C))
-            assert i != -1 and j != -1, 'No clusters can be merged, probably k is too low'
+            if i == -1 or j == -1:
+                print('No clusters can be merged, probably k is too low, stopping with %s clusters' % len(self.C))
+                for Ci in self.C:
+                    if len(Ci.indices) == 1:
+                        print('------')
+                        neigh = set(self.knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
+                        print(self.C.index(Ci), 'neigh', neigh)
+                        neigh_c = set([self.map_cluster[n] for n in neigh])
+                        for Cj in neigh_c:
+                            i, j = self.C.index(Ci), self.C.index(Cj)
+                            i, j = min(i, j), max(i, j)  # So that we always populate upper part
+                            print(self.D[i, j])
+                break
             i, j = min(i, j), max(i, j)
             Ci, Cj = self.C[i], self.C[j]
 
+            # Save neighbors of Cj
+            l = self.D.shape[0] - len(self.C)
+            e = -l + 1 if -l + 1 != 0 else self.D.shape[0]
+            ind_r = np.argwhere(self.D[:j, j] != -1)
+            ind_c = np.argwhere(self.D[j, j + 1:e] != -1) + j + 1
+            Cj_neigh = [self.C[idx.item()] for idx in itertools.chain(ind_r, ind_c)]
+
             self.C.remove(Cj)
             Ci.merge(Cj)
-            Ci.update_mean()
+            Ci.update_mean(pool=self.pool)
 
             for s_idx in Cj.indices:
                 self.map_cluster[s_idx] = Ci
@@ -185,15 +212,18 @@ class ACDT:
             # Update distances
             self.D = delete_rowcolumn(self.D, j, len(self.C))  # Delete (offset all to left to skip it) column and row j
 
-            # Now for each connection of Ci update the distance
+            # Now for each connection with Ci update the distance
             neigh = set(self.knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
-            neigh_c = set([self.map_cluster[n] for n in neigh])
-            pairs = [(Ci, Cj) for Cj in neigh_c if Ci != Cj]
+            Ci_neigh = set([self.map_cluster[n] for n in neigh])
+            index_Ci = self.C.index(Ci)
+            pairs = set((Ci, Cj) if index_Ci < self.C.index(Cj) else (Cj, Ci) for Cj in Ci_neigh if Ci != Cj)
+            pairs.update((Ci, Cj) if index_Ci < self.C.index(Cj) else (Cj, Ci) for Cj in Cj_neigh if Ci != Cj)
 
-            for Ci, Cj in pairs:
+            distances = self.pool.starmap(d_hat, pairs)
+            for ith, (Ci, Cj) in enumerate(pairs):
                 i, j = self.C.index(Ci), self.C.index(Cj)
                 i, j = min(i, j), max(i, j)  # So that we always populate upper part
-                self.D[i, j] = d_hat(Ci, Cj)
+                self.D[i, j] = distances[ith]
 
             if self.store_every != 0 and len(self.C) < self.minimum_ckpt and len(self.C) % self.store_every == 0:
                 for Ci in self.C:
@@ -203,11 +233,7 @@ class ACDT:
                     u_C0mi, _, _ = scipy.linalg.svd(C0mi, full_matrices=False)
                     Ci.F = u_C0mi[:, :self.d]
 
-                data = {
-                    'C': copy.deepcopy(self.C),
-                    'knn': copy.deepcopy(self.knn),
-                }
-                self.checkpoints[len(self.C)] = data
+                self.checkpoints[len(self.C)] = {'C': copy.deepcopy(self.C)}
 
                 if self.visualize:
                     if self.X.shape[1] == 2:
@@ -224,4 +250,4 @@ class ACDT:
             Ci.F = u_C0mi[:, :self.d]
 
         def clear_checkpoints(self):
-            self.checkpoints = {}
+            self.checkpoints = {'knn': self.k}

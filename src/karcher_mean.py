@@ -2,11 +2,8 @@ import os
 import numpy as np
 import scipy.io
 from scipy import linalg
-from multiprocessing import Pool
-PROCESS = os.cpu_count()
 
-
-def karcher_mean(P, m, eps, maxiters):
+def karcher_mean(P, m, eps, maxiters, pool=None):
     n = P[0].shape[0]
     k = P[0].shape[1]
     p_bar = P[0]
@@ -18,26 +15,28 @@ def karcher_mean(P, m, eps, maxiters):
     best_p_bar = p_bar
     iters = 0
     while nw > eps:
-        U, S, Vh = linalg.svd(w, full_matrices=False, overwrite_a=True)
+        U, S, Vh = linalg.svd(w, full_matrices=False, overwrite_a=True, check_finite=False)
         V = Vh.T
         p_bar = np.dot(np.dot(p_bar, V), np.diag(np.cos(S))) + np.dot(U, np.diag(np.sin(S)))
         w = np.zeros((n, k))
 
         # Candy multiprocessing for parallel logq_map
-        for x in pool.starmap(logq_map, [(p_bar, point) for point in P]):
-            w = w + x
-
+        if pool is None:
+            w = w + sum(logq_map(p_bar, point) for point in P)
+        else:
+            for x in pool.starmap(logq_map, [(p_bar, point) for point in P]):
+                w = w + x
         w = w / m
 
         nw = np.linalg.norm(w, ord='fro')
 
-        if iters > maxiters:
-            print('Max iters reached')
-            break
+        if nw < lowest_nw:
+            lowest_nw = nw
+            best_p_bar = p_bar
 
-        lowest_nw = nw
-        best_p_bar = p_bar
         iters += 1
+        if iters >= maxiters:
+            break
 
     #print('Error on out: %s' % nw)
     return linalg.orth(best_p_bar)
@@ -86,7 +85,7 @@ def cs_decomp(Q1, Q2):
         V[:, :n] = V[:, i]
         return U, V, Z, C, S
 
-    U, C, Zh = linalg.svd(Q1, overwrite_a=True)
+    U, C, Zh = linalg.svd(Q1, overwrite_a=True, check_finite=False)
     C = np.diag(C)
     Z = Zh.T
 
@@ -113,7 +112,6 @@ def cs_decomp(Q1, Q2):
     else:
         V = np.eye(S.shape[0])
 
-
     S = np.dot(V.T, S)
     r = min(k, m)
     S[:, :r] = diagf(S[:, :r])
@@ -128,7 +126,7 @@ def cs_decomp(Q1, Q2):
             ST = S[0, 0]
             VT = 1
         else:
-            UT, ST, VTh = linalg.svd(S[np.ix_(i, j)])
+            UT, ST, VTh = linalg.svd(S[np.ix_(i, j)], check_finite=False)
             ST = np.diag(ST)
             VT = VTh.T
         if k > 0:
@@ -140,9 +138,9 @@ def cs_decomp(Q1, Q2):
         Z[:, j] = np.dot(Z[:, j], VT)
         i = range(k, q)
 
-        #tmp = C[np.ix_(i, j)]
-        #if len(j) == 1:  # TODO disabled but may be needed
-        #    tmp = tmp.reshape((-1, 1))
+        # tmp = C[np.ix_(i, j)]
+        # if len(j) == 1:  # TODO disabled but may be needed
+        #     tmp = tmp.reshape((-1, 1))
 
         Q, R = np.linalg.qr(C[np.ix_(i, j)], mode='complete')
         C[np.ix_(i, j)] = diagf(R)
@@ -215,16 +213,15 @@ def diagk(X, k):
     return []
 
 
-pool = Pool(processes=PROCESS)
-
-
 if __name__ == '__main__':
     # n = 784  # R^n
-    n = 10  # R^n
-    k = 4  # d-dim
-    m = 2 # num elements
+    n = 64  # R^n
+    k = 16  # d-dim
+    m = 1000 # num elements
 
     np.random.seed()
+    from multiprocessing import Pool
+    pool = Pool()
 
     x = []
     for i in range(m):
@@ -240,7 +237,7 @@ if __name__ == '__main__':
 
     print('INPUT')
     print(x)
-    y = karcher_mean(x, m, 1e-16, 2000)
+    y = karcher_mean(x, m, 1e-16, 2000, pool)
     print('INPUT')
     print(x)
     print('MEAN')
