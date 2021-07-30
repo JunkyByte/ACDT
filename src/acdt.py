@@ -91,10 +91,8 @@ class Cluster:
         self.d = None
 
     def update_mean(self, pool=None):
-        t = time.time()
         iters = 5 if len(self.points) < 100 else 3 if len(self.points) < 250 else 1
         self.M = km(self.points, len(self.points), 1e-6, iters, pool)  # TODO
-        print(time.time() - t, len(self.points))
         self.update_distance(pool=pool)
 
     def update_distance(self, pool=None):
@@ -181,16 +179,6 @@ class ACDT:
             i, j = argmin_dissimilarity(self.D, len(self.C))
             if i == -1 or j == -1:
                 print('No clusters can be merged, probably k is too low, stopping with %s clusters' % len(self.C))
-                for Ci in self.C:
-                    if len(Ci.indices) == 1:
-                        print('------')
-                        neigh = set(self.knn.kneighbors(Ci.X, return_distance=False)[:, 1:].flatten())
-                        print(self.C.index(Ci), 'neigh', neigh)
-                        neigh_c = set([self.map_cluster[n] for n in neigh])
-                        for Cj in neigh_c:
-                            i, j = self.C.index(Ci), self.C.index(Cj)
-                            i, j = min(i, j), max(i, j)  # So that we always populate upper part
-                            print(self.D[i, j])
                 break
             i, j = min(i, j), max(i, j)
             Ci, Cj = self.C[i], self.C[j]

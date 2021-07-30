@@ -3,7 +3,7 @@ import pickle
 import time
 import numpy as np
 import sklearn.datasets as datasets
-from datasets_util import make_spiral, make_2_spiral, load_bsds
+from datasets_util import make_spiral, make_2_spiral, load_bsds, load_vidtimit
 from draw_utils import draw_3d_clusters, draw_spiral_clusters
 from acdt import ACDT
 np.random.seed(42)
@@ -11,12 +11,22 @@ np.random.seed(42)
 
 if __name__ == '__main__':
     # BSDS
-    n = 10000
-    k = 100
-    l = 5
-    d = 16
-    X = load_bsds('../data/BSDS300/images/train/', n)
+    # n = 5000
+    # k = 30
+    # l = 5
+    # d = 16
+    # X = load_bsds('../data/BSDS300/images/train/', n)
+    # X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+
+    # VidTIMITT
+    subject = 1
+    k = 15
+    l = 2
+    d = 10
+    X = load_vidtimit('../data/vidtimit/', subject=subject)
     X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+    n = len(X)
+    print('Loaded vidtimit subject %s with size %s' % (subject, n))
 
     # S curve and Swiss roll
     # n = 5000
