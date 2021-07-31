@@ -91,7 +91,7 @@ class Cluster:
         self.d = None
 
     def update_mean(self, pool=None):
-        iters = 5 if len(self.points) < 100 else 3 if len(self.points) < 250 else 1
+        iters = 3 if len(self.points) < 100 else 2 if len(self.points) < 250 else 1
         self.M = km(self.points, len(self.points), 1e-6, iters, pool)  # TODO
         self.update_distance(pool=pool)
 

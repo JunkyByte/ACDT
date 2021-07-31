@@ -17,7 +17,7 @@ if __name__ == '__main__':
     l = 5
     d = 100
     X = load_mnist('../data/MNIST/', digit=0, n=n)
-    X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+    X = X / 255
 
     # BSDS
     # n = 5000

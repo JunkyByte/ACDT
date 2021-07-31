@@ -18,7 +18,7 @@ def load_mnist(path, digit, n=2000):
     v = images[labels == digit]
     X = v[np.random.choice(v.shape[0], size=n, replace=False)]
     assert X.shape[0] == n
-    return X.T
+    return X
 
 
 def load_vidtimit(path, subject=0, skip_pickle=False):
