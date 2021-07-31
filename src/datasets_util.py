@@ -5,6 +5,20 @@ import numpy as np
 import pickle
 from sklearn.feature_extraction import image
 from numpy import pi
+from mnist import MNIST
+
+
+def load_mnist(path, digit, n=2000):
+    mndata = MNIST(path)
+    images, labels = mndata.load_training()
+    images = np.array(images)
+    labels = np.array(labels)
+
+    # Create balanced subset
+    v = images[labels == digit]
+    X = v[np.random.choice(v.shape[0], size=n, replace=False)]
+    assert X.shape[0] == n
+    return X.T
 
 
 def load_vidtimit(path, subject=0, skip_pickle=False):
