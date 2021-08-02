@@ -1,0 +1,44 @@
+import os
+import pickle
+import time
+import numpy as np
+import sklearn.datasets as datasets
+from datasets_util import make_spiral, make_2_spiral, load_bsds, load_vidtimit
+from draw_utils import draw_3d_clusters, draw_spiral_clusters
+from acdt import ACDT
+np.random.seed(42)
+
+
+if __name__ == '__main__':
+    datasets_3d = {'scurve': datasets.make_s_curve, 'swiss': datasets.make_swiss_roll}
+    for name, dataset in datasets_3d.items():
+        # S curve and Swiss roll
+        n = 5000
+        k = 15
+        l = 2
+        d = 2
+        X, _ = datasets.make_s_curve(n)
+        X, _ = datasets.make_swiss_roll(n)
+        X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+
+        # 2d datasets
+        # n = 500
+        # k = 4
+        # l = 2
+        # d = 1
+        # X = make_spiral(n=n)
+        # X = make_2_spiral(n=n)
+        # X, _ = datasets.make_circles(n)
+
+        total = time.time()
+        acdt = ACDT(k, l, d, X, minimum_ckpt=100, store_every=1, visualize=False)
+        acdt.fit()
+        print('Took: %ss' % (time.time() - total))
+        acdt.pool.close()
+
+        PATH = './saved/'
+        os.makedirs(PATH, exist_ok=True)
+        file_name = 'ckpt_' + name + '.pickle'
+        with open(os.path.join(PATH, 'ckpt.pickle'), 'wb') as f:
+            pickle.dump(acdt.checkpoints, f, protocol=pickle.HIGHEST_PROTOCOL)
+        # draw_3d_clusters(acdt.C)
