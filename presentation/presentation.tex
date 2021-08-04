@@ -60,7 +60,7 @@ Un esempio classico sono una sfera in $\RR^{3}$ e una circonferenza in $\RR^{2}$
 \es
 
 \bs
-In questo lavoro si cerchera' di approssimare una varieta' arbitraria attraverso un modello semplice e computazionalmente efficiente ossia un set di sottospazi affini di dimensione arbitraria cercando di preservare globalmente la geometria della varieta'.
+In questo lavoro si cerchera' di approssimare una varieta' arbitraria attraverso un modello semplice e computazionalmente efficiente ossia un set di sottospazi affini di dimensione fissata cercando di preservare globalmente la geometria della varieta' stessa.
 
 
 \begin{figure}[b]
@@ -176,6 +176,51 @@ Cerchiamo ora una funzione $\mathcal{P}$ che valuti la bonta' di una partizione,
 \end{gathered}
 \end{equation*}
 Osserviamo che per definizione $\mathcal{P}$ e' distributiva sui cluster e non negativa, inoltre e' nulla sui cluster formati da singoletti.
+
+\bc{\bf\color{blue}Il problema di approssimazione}\ec
+Ora che abbiamo una misura di bonta' possiamo definire il nostro problema di approssimazione come la ricerca della partizione $\mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})$ dove
+\begin{equation*}
+\mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})=\underset{\mathbf{C} \in \Phi_{\mathcal{L}}(\mathcal{X})}{\operatorname{argmin}} \mathcal{P}(C)= \underset{\mathbf{C} \in \Phi_{\mathcal{L}}(\mathcal{X})}{\operatorname{argmin}} \sum_{C_{i} \in \mathbf{C}} \sum_{x \in C_{i}} D_{T}^{2}\left(M_{C_{i}}, M_{x}\right)
+\end{equation*}
+\es
+
+\bs
+\bc{\bf\color{blue}Verso una formulazione greedy}\ec
+Vogliamo formulare una versione meno accurata ma piu' efficiente,
+introduciamo alcuni rilassamenti al problema andando a determinare un algoritmo greedy e bottom-up, ci serve pero' un modo per valutare la bonta' di una fusione di cluster.
+\begin{definition}[Misura di Dissimilarita']
+$d:(C_i, C_j)\to R^{+}_0$ \\
+$d(C_i, C_j) = p(C_i\cup C_j) - p(C_i) - p(C_j)$ \\
+\end{definition}
+Esplicitando possiamo osservare che $d\geq 0$ infatti
+\es
+
+\bs
+\begin{equation*}
+\begin{aligned}
+d\left(C_{i}, C_{j}\right)=& \sum_{x \in C_{i} \cup C_{j}} D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right)-\sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{i}}\right) \\
+&-\sum_{x \in C_{j}} D_{T}^{2}\left(M_{x}, M_{C_{j}}\right) \\
+=& \sum_{x \in C_{i}} \left[D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right)- D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)\right] \\
+&+\sum_{x \in C_{j}} \left[D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right)-D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)\right]
+\end{aligned}
+\end{equation*}
+Da cui segue la tesi data la definizione di $M_{C_i}$, $M_{C_j}$ e $M_{C_i\cup C_j}$. \\
+Possiamo allora riscrivere il nostro problema nella forma
+\vskip 0.05in
+$\mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})=\left(\mathbf{C}_{\mathcal{L}+1}^{\prime}(\mathcal{X}) \backslash\left\{C_{i}^{\prime}, C_{j}^{\prime}\right\}\right) \cup\left\{C_{i}^{\prime} \cup C_{j}^{\prime}\right\}$ \ dove \\
+$\left(\mathbf{C}_{\mathcal{L}+1}^\prime(\mathcal{X}), C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \mathbf{C}, \ \mathbf{C} \in \Phi_{\mathcal{L}+1} \atop \Psi(C_i, C_j) \ \text{e' vera}}{\operatorname{argmin}}\left(P(\mathbf{C})+d(C_{i}, C_{j})\right)$
+\es
+
+\bs
+\bc{\bf\color{blue}Approccio dinamico e greedy relaxation}\ec
+Questa formulazione permette un approccio dinamico, per avere la migliore partizione di $\mathcal{L}$ cluster possiamo controllare tutte le partizioni di $\mathcal{L} + 1$ cluster e unire i due cluster a minor costo. \\
+Deriviamo un algoritmo greedy togliendo la ricerca su $\Phi_{\mathcal{L}+1}$ e otteniamo
+\vskip 0.05in
+$\widehat{\mathbf{C}}_{\mathcal{L}}(\mathcal{X})=\left(\mathbf{C}_{\mathcal{L}+1}(\mathcal{X}) \backslash\left\{C_{i}^{\prime}, C_{j}^{\prime}\right\}\right) \cup\left\{C_{i}^{\prime} \cup C_{j}^{\prime}\right\}$ \\
+dove \ $\left(C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \widehat{\mathbf{C}}_{\mathcal{L} + 1}(\mathcal{X}) \atop \Psi(C_i, C_j) \ \text{e' vera}}{\operatorname{argmin}}d(C_{i}, C_{j})$ \\
+Questo riduce notevolmente il costo computazionale ma non assicura piu' l'ottimalita' della soluzione trovata. \\
+\vskip 0.1in
+Siamo ora pronti a descrivere l'algoritmo di clustering.
 \es
 
 \end{document}

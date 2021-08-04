@@ -15,7 +15,7 @@ if __name__ == '__main__':
     l = 5
     d = 100
 
-    digit = 8
+    digit = 9
     print('PROCESSING DIGIT %s' % digit)
     X = load_mnist('../data/MNIST/', digit=digit, n=n)
     X = X / 255
