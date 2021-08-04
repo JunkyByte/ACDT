@@ -102,7 +102,7 @@ class Cluster:
             self.d = sum(pool.starmap(d_geodesic, ((self.M, Mx) for Mx in self.points)))
 
     def __len__(self):
-        return len(self.points)
+        return len(self.indices)
 
 
 class ACDT:
@@ -126,7 +126,7 @@ class ACDT:
         self.minimum_ckpt = minimum_ckpt
         self.store_every = store_every
         self.visualize = visualize
-        self.checkpoints = {'knn': self.k}
+        self.checkpoints = {'knn': self.k, 'X': copy.deepcopy(self.X)}
         PROCESS = os.cpu_count()
         self.pool = Pool(processes=PROCESS)
 
@@ -222,12 +222,15 @@ class ACDT:
                     Ci.F = u_C0mi[:, :self.d]
 
                 self.checkpoints[len(self.C)] = {'C': copy.deepcopy(self.C)}
+                for Ci in self.checkpoints[len(self.C)]['C']:  # To reduce the size on disk
+                    Ci.X = None
+                    Ci.points = None
 
                 if self.visualize:
                     if self.X.shape[1] == 2:
-                        draw_spiral_clusters(self.C, self.k)
+                        draw_spiral_clusters(self.C, self.X, self.k)
                     if self.X.shape[1] == 3:
-                        draw_3d_clusters(self.C)
+                        draw_3d_clusters(self.C, self.X)
 
         # Compute final flats
         for Ci in self.C:
@@ -236,6 +239,3 @@ class ACDT:
             C0mi = samples - mean_pos
             u_C0mi, s, _ = scipy.linalg.svd(C0mi, full_matrices=False)
             Ci.F = u_C0mi[:, :self.d]
-
-        def clear_checkpoints(self):
-            self.checkpoints = {'knn': self.k}

@@ -15,19 +15,18 @@ if __name__ == '__main__':
     l = 5
     d = 100
 
-    for digit in range(10):
-        print('PROCESSING DIGIT %s' % digit)
-        X = load_mnist('../data/MNIST/', digit=digit, n=n)
-        X = X / 255
+    digit = 8
+    print('PROCESSING DIGIT %s' % digit)
+    X = load_mnist('../data/MNIST/', digit=digit, n=n)
+    X = X / 255
 
-        total = time.time()
-        acdt = ACDT(k, l, d, X, minimum_ckpt=50, store_every=1, visualize=False)
-        acdt.fit()
-        print('Took: %ss' % (time.time() - total))
-        acdt.pool.close()
+    total = time.time()
+    acdt = ACDT(k, l, d, X, minimum_ckpt=50, store_every=1, visualize=False)
+    acdt.fit()
+    print('Took: %ss' % (time.time() - total))
 
-        PATH = './saved/'
-        os.makedirs(PATH, exist_ok=True)
-        file_name = 'ckpt_mnist_%s.pickle' % digit
-        with open(os.path.join(PATH, file_name), 'wb') as f:
-            pickle.dump(acdt.checkpoints, f, protocol=pickle.HIGHEST_PROTOCOL)
+    PATH = './saved/'
+    os.makedirs(PATH, exist_ok=True)
+    file_name = 'ckpt_mnist_%s.pickle' % digit
+    with open(os.path.join(PATH, file_name), 'wb') as f:
+        pickle.dump(acdt.checkpoints, f, protocol=pickle.HIGHEST_PROTOCOL)

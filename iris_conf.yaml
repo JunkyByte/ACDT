@@ -3,5 +3,5 @@ to: adryw@1.tcp.eu.ngrok.io:22946
 mirror: True
 
 from_path: ~/Documents/ACDT/
-to_path: /home/adryw/Documents/iris_proj/ACDT/
-ignore_pattern: '**.git/** *.mp4 *.mkv *.mov *.MOV *.nbi *.nbc *.pyc *.pickle *.zip data/vidtimit/ data/BSDS300/'
+to_path: /home/adryw/dataset/ACDT/
+ignore_pattern: '**.git/** *.mp4 *.mkv *.mov *.MOV *.nbi *.nbc *.pyc *.pickle *.zip data/vidtimit/ data/BSDS300/ presentation/'
