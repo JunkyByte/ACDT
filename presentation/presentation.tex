@@ -1,4 +1,11 @@
-\documentclass{seminar}
+\documentclass[a4, landscape]{seminar}
+\pdfcompresslevel=9
+\pdfpagewidth=11.69 truein % A4 portrait
+\pdfpageheight=8.27 truein % A4 portrait
+\pdfhorigin=1truein     % default value(?), but doesn't work without
+\pdfvorigin=0.74truein     % default value(?), but doesn't work without
+\slideheight=17.5cm
+\slidewidth=23cm
 \usepackage{graphicx,color,fancybox,amsfonts,amsmath}
 \usepackage[italian]{babel}
 \usepackage{amsthm}
@@ -221,6 +228,93 @@ dove \ $\left(C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \
 Questo riduce notevolmente il costo computazionale ma non assicura piu' l'ottimalita' della soluzione trovata. \\
 \vskip 0.1in
 Siamo ora pronti a descrivere l'algoritmo di clustering.
+\es
+
+\bs
+\bc{\bf\color{blue}Inizializzazione: $G_\mathcal{X}$ e $M_x$}\ec
+$G_\mathcal{X}$ e' costruita connettendo ogni punto ai suoi vicini attraverso una $\it{knn}$, per ogni punto $x\in\mathcal{X}$
+definiamo inoltre $N_x = \{y\in\mathcal{X} : \left( x, y \right) \in E \}$ l'insieme dei neighbors di $x$.
+Ora $M_x$ puo' essere approssimato come il sottospazio di dimensione $d$ che meglio approssima $N^{0}_x$. \\
+Per il teorema di $\it{Eckart}$\ -$\it{Young}$ questo corrisponde a determinare la $d$-$rank$ SVD di $\left[N^{0}_x\right]$.
+\bc{\bf\color{blue}Algoritmo di merging}\ec
+Fissiamo $n=|\mathcal{X}|$ e la partizione iniziale ottimale $C^{*}_n = \{\{x\}; x\in\mathcal{X}\}$ \\
+Ad ogni iterazione uniamo due cluster $C_i$ e $C_j$, Il predicato di fondibilita' precedentemente definito ci permette
+di determinare tutti i possibili $C_i$ e $C_j$ fondibili: essi saranno i cluster che sono connessi per almeno un $\it{edge}$.
+La dissimilarita' tra due cluster era definita come
+\begin{equation*}
+\begin{aligned}
+d(C_i, C_j) =& \ p(C_i\cup C_j) - p(C_i) - p(C_j) \\
+=& \sum_{x \in C_{i}} \left[D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right)- D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)\right] \\
+&+\sum_{x \in C_{j}} \left[D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right)-D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)\right]
+\end{aligned}
+\end{equation*}
+\es
+
+\bs
+Tale equazione e' costosa da computare poiche' richiede il calcolo di $M_{C_i\cup C_j}$ per ogni ipotetica fusione.
+Vorremmo una formulazione che dipenda solo da valori gia' calcolati e.g. lo spazio tangente medio di ogni cluster e
+la distanza tra esso e gli spazi tangenti dei singoli punti del cluster. \\
+Osserviamo $\sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right) \leq \sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)$, provabile p.a.
+Lo stesso vale naturalmente per $C_j$, allora sostituendo in $d$ otteniamo:
+\begin{equation*}
+\begin{aligned}
+  d\left(C_{i}, C_{j}\right) \leq & \sum_{x \in C_{i}}\left[\textcolor{red}{D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)}-D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)\right] \\
+  &+\sum_{x \in C_{j}}\left[\textcolor{red}{D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)}-D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)\right]
+  \end{aligned}
+\end{equation*}
+Ora per la disuguaglianza triangolare si ha
+\begin{equation*}
+  \begin{array}{ll}
+    \textcolor{red}{D_{T}\left(M_{x}, M_{C_{j}}\right)} \leq D_{T}\left(M_{x}, M_{C_{i}}\right)+D_{T}\left(M_{C_{i}}, M_{C_{j}}\right), & \forall x \in \mathcal{X} \\
+    \textcolor{red}{D_{T}\left(M_{x}, M_{C_{i}}\right)} \leq D_{T}\left(M_{x}, M_{C_{j}}\right)+D_{T}\left(M_{C_{i}}, M_{C_{j}}\right), & \forall x \in \mathcal{X}
+    \end{array}
+\end{equation*}
+\es
+
+\bs
+E quindi elevando al quadrato e sommando sui punti di $C_i$ e $C_j$ rispettivamente otteniamo
+\begin{equation*}
+\begin{aligned}
+  &\sum_{x \in C_{i}}\left[\textcolor{red}{D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)}-D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)\right] \\
+  &\quad \leq 2 D_{T}\left(M_{C_{i}}, M_{C_{j}}\right) \sum_{x \in C_{i}} D_{T}\left(M_{x}, M_{C_{i}}\right)+\left|C_{i}\right| D_{T}^{2}\left(M_{C_{i}}, M_{C_{j}}\right) \\
+  &\sum_{x \in C_{j}}\left[\textcolor{red}{D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)}-D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)\right] \\
+  &\quad \leq 2 D_{T}\left(M_{C_{i}}, M_{C_{j}}\right) \sum_{x \in C_{j}} D_{T}\left(M_{x}, M_{C_{j}}\right)+\left|C_{j}\right| D_{T}^{2}\left(M_{C_{i}}, M_{C_{j}}\right)
+  \end{aligned}
+\end{equation*}
+Otteniamo cosi' la formula finale per la nostra dissimilarita' approssimata $\tilde{d}$ che dipende \underline{solo}
+da informazioni pregresse
+\begin{equation*}
+  \begin{aligned}
+    &d\left(C_{i}, C_{j}\right) \leq\left(\left|C_{i}\right|+\left|C_{j}\right|\right) D_{T}^{2}\left(M_{C_{i}}, M_{C_{j}}\right) \\
+    &\quad+2 D_{T}\left(M_{C_{i}}, M_{C_{j}}\right)\left[\sum_{x \in C_{i}} D_{T}\left(M_{x}, M_{C_{i}}\right)+\sum_{x \in C_{j}} D_{T}\left(M_{x}, M_{C_{j}}\right)\right]
+  \end{aligned}
+\end{equation*}
+Calcoleremo cosi' lo spazio tangente medio solo per il nuovo cluster creato.
+\es
+
+\bs
+\bc{\bf\color{blue}Schema dell'algoritmo completo}\ec
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.55\textwidth]{algorithm.eps}
+\end{figure}
+Nelle linee $14-16$ vengono computati i sottospazi affini finali attraverso SVD.
+\es
+
+\bs
+\bc{\bf\color{blue}Risultati sperimentali}\ec
+Iniziamo con l'approssimazione di dataset sintetici, la Swiss Roll e la S-Curve. I test sono condotti con 5000 punti di training,
+con un neighborhood $k=15$, la performance e' valutata con il $\it{mean\ squared\ reconstruction\ error.}$
+$M S R E=\frac{1}{N} \sum_{i=1}^{N}\left\|x_{i}-\hat{x}_{i}\right\|^{2}$. \\
+Riportiamo anche i tempi di esecuzione dell'algoritmo su tale dataset:
+\begin{center}
+    \begin{tabular}{ |c|c|c|c| }
+    \hline
+    Paper - MBP 2.66Ghz & Mine - MBA 1.6Ghz & Mine - i5 3.60GHz \\
+    389s & \color[HTML]{009901} 267s & \color[HTML]{009901} 123s \\
+    \hline
+    \end{tabular}
+\end{center}
 \es
 
 \end{document}

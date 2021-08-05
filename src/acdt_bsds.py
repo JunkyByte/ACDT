@@ -14,7 +14,7 @@ if __name__ == '__main__':
     n = 5000
     k = 30
     l = 5
-    d = 16
+    d = 64
     X = load_bsds('../data/BSDS300/images/train/', n)
     X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
 
@@ -25,5 +25,5 @@ if __name__ == '__main__':
 
     PATH = './saved/'
     os.makedirs(PATH, exist_ok=True)
-    with open(os.path.join(PATH, 'ckpt_bsds.pickle'), 'wb') as f:
+    with open(os.path.join(PATH, 'ckpt_bsds_%s.pickle' % str(d)), 'wb') as f:
         pickle.dump(acdt.checkpoints, f, protocol=pickle.HIGHEST_PROTOCOL)

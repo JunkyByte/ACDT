@@ -10,9 +10,9 @@ np.random.seed(42)
 
 
 if __name__ == '__main__':
-    datasets_3d = {'scurve': datasets.make_s_curve, 'swiss': datasets.make_swiss_roll}
+    datasets_3d = {'swiss': datasets.make_swiss_roll, 'scurve': datasets.make_s_curve}
     for name, dataset in datasets_3d.items():
-        # S curve and Swiss roll
+        print('Dataset', name)
         n = 5000
         k = 15
         l = 2
@@ -21,7 +21,7 @@ if __name__ == '__main__':
         X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
 
         total = time.time()
-        acdt = ACDT(k, l, d, X, minimum_ckpt=100, store_every=1, visualize=False)
+        acdt = ACDT(k, l, d, X, minimum_ckpt=100, store_every=0, visualize=False)
         acdt.fit()
         print('Took: %ss' % (time.time() - total))
         acdt.pool.close()
