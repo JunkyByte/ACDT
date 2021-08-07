@@ -21,7 +21,7 @@ if __name__ == '__main__':
         X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
 
         total = time.time()
-        acdt = ACDT(k, l, d, X, minimum_ckpt=100, store_every=0, visualize=False)
+        acdt = ACDT(k, l, d, X, minimum_ckpt=100, store_every=2, visualize=False)
         acdt.fit()
         print('Took: %ss' % (time.time() - total))
         acdt.pool.close()

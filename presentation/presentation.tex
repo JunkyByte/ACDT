@@ -303,10 +303,10 @@ Nelle linee $14-16$ vengono computati i sottospazi affini finali attraverso SVD.
 
 \bs
 \bc{\bf\color{blue}Risultati sperimentali}\ec
-Iniziamo con l'approssimazione di dataset sintetici, la Swiss Roll e la S-Curve. I test sono condotti con 5000 punti di training,
-con un neighborhood $k=15$, la performance e' valutata con il $\it{mean\ squared\ reconstruction\ error.}$
+Iniziamo con l'approssimazione di 2 dataset sintetici 3D, la Swiss Roll e la S-Curve. I test sono condotti con 5000 punti,
+un neighborhood size di $k=15$ e $d=2$, la performance e' valutata con il $\it{mean\ squared\ reconstruction\ error.}$
 $M S R E=\frac{1}{N} \sum_{i=1}^{N}\left\|x_{i}-\hat{x}_{i}\right\|^{2}$. \\
-Riportiamo anche i tempi di esecuzione dell'algoritmo su tale dataset:
+Riportiamo anche i tempi di esecuzione dell'algoritmo su tali dataset:
 \begin{center}
     \begin{tabular}{ |c|c|c|c| }
     \hline
@@ -315,6 +315,36 @@ Riportiamo anche i tempi di esecuzione dell'algoritmo su tale dataset:
     \hline
     \end{tabular}
 \end{center}
+\es
+
+\bs
+\bc{\bf\color{blue}Cluster finali S-Curve}\ec
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.95\textwidth]{scurve.eps}
+\end{figure}
+\es
+
+\bs
+\bc{\bf\color{blue}Cluster finali Swiss Roll}\ec
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.95\textwidth]{swissroll.eps}
+\end{figure}
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=\textwidth]{scurve_msre.eps}
+\end{figure}
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=\textwidth]{swiss_msre.eps}
+\end{figure}
 \es
 
 \end{document}
