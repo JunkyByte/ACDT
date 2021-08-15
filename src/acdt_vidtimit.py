@@ -11,7 +11,7 @@ np.random.seed(42)
 
 if __name__ == '__main__':
     # VidTIMITT
-    subject = 0
+    subject = 1
     k = 15
     l = 2
     d = 10

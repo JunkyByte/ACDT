@@ -326,14 +326,6 @@ Riportiamo anche i tempi di esecuzione dell'algoritmo su tali dataset:
 \es
 
 \bs
-\bc{\bf\color{blue}Cluster finali Swiss Roll}\ec
-\begin{figure}[b]
-\centering
-\includegraphics[width=0.95\textwidth]{swissroll.eps}
-\end{figure}
-\es
-
-\bs
 \begin{figure}[b]
 \centering
 \includegraphics[width=\textwidth]{scurve_msre.eps}
@@ -341,9 +333,105 @@ Riportiamo anche i tempi di esecuzione dell'algoritmo su tali dataset:
 \es
 
 \bs
+\bc{\bf\color{blue}Cluster finali Swiss Roll}\ec
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.92\textwidth]{swissroll.eps}
+\end{figure}
+\es
+
+\bs
 \begin{figure}[b]
 \centering
 \includegraphics[width=\textwidth]{swiss_msre.eps}
+\end{figure}
+\es
+
+\bs
+\bc{\bf\color{blue}Patch Naturali}\ec
+Un ulteriore test condotto e' sulla ricostruzione di patch di immagini naturali che si
+assume appartengano ad una varieta' di dimensione inferiore nel lavoro di $\it{Ramamurthy, et\ al. - Improved\ sparse\
+coding\ using\ manifold\ projections}$. Il dataset utilizzato e' il Berkeley Segmentation Dataset (BSDS),
+le patch sono di dimensione 8x8 e i test condotti con 5000 punti e k=30.
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=\textwidth]{naturalpatches.eps}
+\end{figure}
+\es
+
+\bs
+\bc{\bf\color{blue}VidTIMIT Face dataset}\ec
+Sempre su immagini si e' valutato il potere ricostruttivo dell'algoritmo su un dataset di facce
+prese dal VidTIMIT database. Le facce di un singolo soggetto che sposta la testa in varie direzioni sono
+state estratte utilizzando un algoritmo di face detection classico sviluppato da $\it{P.Viola}$ e successivamente
+ridimensionate a 26x26 pixel. \\
+Assumendo che le faccia in diverse pose di una stessa persona appartenga ad una varieta' di dimensione inferiore si e' applicato
+l'ACDT per approssimare tale varieta'; il numero di punti di training variano da soggetto a soggetto, mediamente sono 750,
+k=15 e la dimensione d=10 (dove $\RR^{N} = \RR^{676}$). \\
+Le ricostruzioni sono fatte con gli spazi affini per $\mathcal{L}=12$.
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=\textwidth]{vidtimit_msre.eps}
+\end{figure}
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.55\textwidth]{rec_sub0_vt.eps}
+\end{figure}
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.6\textwidth]{cluster_sub0.eps}
+\end{figure}
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.55\textwidth]{vidtimit_sub1_rec.eps}
+\end{figure}
+\es
+
+\bs
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.55\textwidth]{vidtimit_cluster_sub1.eps}
+\end{figure}
+\es
+
+\bs
+\bc{\bf\color{blue}MNIST}\ec
+L'ultimo test condotto e' sul MNIST, dataset di digit scritte a mano di dimensione 28x28.
+Per valutare la potenza dell'algoritmo al fine della classificazione si e' valutato un indice chiamato
+$\it{Geometric\ Separability\ Index}$ presentato nel paper di $\it{C. Thornton,\ Separability\ is\ a\ learner's\ best\ friend}$.
+Questo indice e' definito come il rateo di coppie di neighbors che condividono la stessa classe. Il test e' condotto con 2000 punti casuali per ogni digit k=15 e d=100.
+Il GSI viene valutato nello spazio originale e nello spazio delle distanze dagli spazi affini trovati.
+\begin{center}
+    \begin{tabular}{ |c|c|c| }
+    \hline
+    Original 784 space & ACDT 100-d space $\mathcal{L} = 10$ \\
+    0.96 & \color[HTML]{009901} 0.94 \\
+    \hline
+    \end{tabular}
+\end{center}
+\es
+
+\bs
+Riportiamo anche l'accuracy e la confusion matrix relativa alla classificazione di 10000 punti del validation set del MNIST per $\mathcal{L}=12$. \\
+Accuracy: 96.78\%
+\begin{figure}[b]
+\centering
+\includegraphics[width=0.75\textwidth]{confusionmatrix.eps}
 \end{figure}
 \es
 
