@@ -1,0 +1,58 @@
+\mode<presentation>
+
+\setbeamertemplate{sections/subsections in toc}[circle]
+\setbeamertemplate{items}[circle]
+\usebeamercolor[fg]{normal text}
+
+\setbeamertemplate{background}{
+\begin{tikzpicture}
+  
+\ifnum\thepage>1\relax%
+% background for pages > 1 
+	%\fill[white,opacity=1] (0,0) rectangle(\the\paperwidth,\the\paperheight);
+\else 
+  % background for the title page
+  \useasboundingbox (0,0) rectangle(\the\paperwidth,\the\paperheight);
+  
+
+  % background image
+  \node[inner sep=0pt] (logo) at (.5\paperwidth,0.5\paperheight){\includegraphics[width=\paperwidth]{graphics/Background-Dark.png}};
+
+  % logo
+  %\node[inner sep=0pt] (logo) at (.5\paperwidth,0.1\paperheight){\includegraphics[width=4.2cm]{graphics/umu-logo-neg-EN.png}};
+
+  % line between institute and author
+    %\fill[color=white] (0,7.1) rectangle(\the\paperwidth,7.15);  
+
+\fi
+% in debug mode, show the grid
+\ifdefined\DEBUG
+	\draw[help lines,xstep=1,ystep=1,gray] (current page.south west) grid (current page.north east);
+\fi
+\end{tikzpicture}
+}
+
+% Title page
+% \sffamily added to \insertauthor,\insertdate and \insertinstitute
+\defbeamertemplate*{title page}{umu}[1][]
+{
+\begin{textblock*}{10cm}(2cm,2.1cm)
+{\usebeamercolor[fg]{author}\usebeamerfont{author}\sffamily\fontseries{semibold}\selectfont\insertinstitute}
+\end{textblock*}
+
+\begin{textblock*}{10cm}(2cm,2.6cm)
+{\usebeamercolor[fg]{title}\usebeamerfont{title}\inserttitle}
+\end{textblock*}
+
+\begin{textblock*}{10cm}(2cm,4.75cm)
+{\usebeamercolor[fg]{author}\usebeamerfont{author}\sffamily\fontseries{semibold}\selectfont\insertauthor}
+\end{textblock*}
+
+\begin{textblock*}{10cm}(0.75\paperwidth,0.94\paperheight) % Previously (2cm,8.1cm)
+{\usebeamercolor[fg]{author}\usebeamerfont{author}\sffamily\fontseries{semibold}\selectfont\insertdate}
+\end{textblock*}
+
+}
+
+\mode
+<all>
