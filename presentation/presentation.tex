@@ -1,21 +1,35 @@
-\documentclass[a4, landscape]{seminar}
-\pdfcompresslevel=9
-\pdfpagewidth=11.69 truein % A4 portrait
-\pdfpageheight=8.27 truein % A4 portrait
-\pdfhorigin=1truein     % default value(?), but doesn't work without
-\pdfvorigin=0.74truein     % default value(?), but doesn't work without
-\slideheight=17.5cm
-\slidewidth=23cm
+% Welcome! This is the unofficial Umeå University template.
+% IMPORTANT: 
+% This work, "Umeå University Unofficial Beamer Theme", is a derivative
+% of "University of Udine Unofficial Beamer Theme" by Marco Basaldella, University of Udine, CC 4.0 BY. 
+% (https://www.overleaf.com/latex/templates/university-of-udine-unofficial-beamer-theme/zndkgxrjsdzt) 
+%
+% In this derived work, changes are made to the colour scheme, title frame, selected fonts as well as 
+% the images used in the title-frame and header. Otherwise, the main functionality and commands are 
+% all credited to Marco Basaldella (and Till Tantau et al. for creating the beamer document class in
+% the first place).  
+%
+% "Umeå University Unofficial Beamer Theme" is licensed under CC 4.0 by Jesper Erixon.
+
+% See README.md for more full information about this template .
+
+% Note that [usenames,dvipsnames] is MANDATORY due to compatibility
+% issues between tikz and xcolor packages.
+
+\documentclass[usenames,dvipsnames,9pt]{beamer} 
+% Add option 'aspectratio=169' for 16:9 widescreen 
+% Add option  'handout' to ignore animations
+% If you have a smaller amount of text, feel free to also try '11pt'! / Jesper
+
+\usepackage[utf8]{inputenc}
+\usepackage{verbatim}
+
 \usepackage{graphicx,color,fancybox,amsfonts,amsmath}
 \usepackage[italian]{babel}
 \usepackage{amsthm}
 \usepackage{mathtools} %loads amsmath as well
 \usepackage{wrapfig}
 \usepackage{tikz}
-
-\theoremstyle{definition}
-\newtheorem{definition}{Def.}
-\newtheorem*{prop}{Proposizione}
 
 \newcommand{\RR}{\mathbb{R}}
 \newcommand{\CC}{\mathbb{C}}
@@ -31,100 +45,125 @@
 
 \def\bc{\begin{center}}
 \def\ec{\end{center}}
-\def\bs{\begin{slide}\begingroup\small}
-\def\es{\endgroup\end{slide}}
 \def\bg{\begingroup}
 \def\eg{\endgroup}
 
-\definecolor{greenf}{rgb}{.054, .5, .005}
+\usetheme{umu}
+
+%%% Bibliography
+\usepackage[style=authoryear,backend=biber]{biblatex}
+\addbibresource{bibliography.bib}
+
+% Author names in publication list are consistent 
+% i.e. name1 surname1, name2 surname2
+% See https://tex.stackexchange.com/questions/106914/biblatex-does-not-reverse-the-first-and-last-names-of-the-second-author
+\DeclareNameAlias{author}{given-family}
+
+%%% Suppress biblatex annoying warning
+\usepackage{silence}
+\WarningFilter{biblatex}{Patching footnotes failed}
+
+%%% Some useful commands
+% pdf-friendly newline in links
+\newcommand{\pdfnewline}{\texorpdfstring{\newline}{ }} 
+% Fill the vertical space in a slide (to put text at the bottom)
+\newcommand{\framefill}{\vskip0pt plus 1filll}
+
+%%% Additional packages, added by Jesper Erixon
+% Use babel to neatly translate 'abstract' etc. to swedish  or other supported language
+%\usepackage[swedish]{babel}
+
+%%% Enter additional packages below (or above, I can't stop you)! / Jesper
+\renewcommand{\proofname}{\sffamily{Proof}}
+
+\theoremstyle{definition}
+% \newtheorem{definition}{Def.}
+\newtheorem*{prop}{Proposizione}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% YOUR PRESENTATION BELOW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[Università di Bologna]{\Huge{Tangent-based manifold approximation with locally linear models}}
+\date[\today]{\small\today}
+\author[Adriano Donninelli]{
+  Adriano Donninelli
+  \pdfnewline
+  \texttt{un lavoro di Sofia Karygianni, Pascal Frossard}
+}
+\institute{Università di Bologna}
+
 
 \begin{document}
 \large
 
-\bs
-\bc{\bf\color{blue}Tangent-based manifold approximation \\with locally linear models}\ec
+\begin{frame}
+\titlepage
+\end{frame}
 
-\vskip 0.2in
-
-\bc{{\color{red} Sofia Karygianni, Pascal Frossard}}\ec
-
-\vskip 0.2in
-
-\bc{\footnotesize \it Ecole Polytechnique Fédérale de Lausanne (EPFL), Signal Processing Laboratory (LTS4), CH-1015 Lausanne, Switzerland}\ec
-\es
-
-\bs
-\bc{\bf\color{blue}Obiettivi}\ec
+\begin{frame}{Obiettivi}
 Partendo dal fatto che dati appartenenti a spazi dimensionalmente complessi siano difficili da trattare (the curse of dimensionality)
 si osserva che spesso tali dati possiedono strutture sottostanti che possono permettere una rappresentazione adeguata in dimensione inferiore.
 \vskip 0.2in
 
 In questo lavoro ci si propone di costruire un algoritmo in grado di approssimare tali dati attraverso un modello semplice e computazionalmente efficiente ossia un set di sottospazi affini di dimensione fissata cercando di preservare globalmente la geometria della struttura di partenza.
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Matematicamente}\ec
-In generale le varieta' (Manifold) sono strutture globalmente complesse che localmente ossia vicino ad ogni loro punto possiedono le stesse caratteristiche dello spazio Euclideo. In questo lavoro, si considerano varieta' $\it d$-dimensionali (differenziabili) immerse in uno spazio Euclideo di dimensione $\RR^{N}$ con $N \gg d$.
-	Intuitivamente si puo' pensare a una varieta' d-dimensionale immersa in $\RR^{N}$ come alla generalizzazione di una superficie in $N$ dimensioni: un insieme di punti che localmente sembra vivere in $\RR^{d}$ ma che macroscopicamente sintetizza una struttura in $\RR^{N}$.
+\begin{frame}{Matematicamente}
+In generale le varietà (Manifold) sono strutture globalmente complesse che localmente ossia vicino ad ogni loro punto possiedono le stesse caratteristiche dello spazio Euclideo. In questo lavoro, si considerano varietà $\it d$-dimensionali (differenziabili) immerse in uno spazio Euclideo di dimensione $\RR^{N}$ con $N \gg d$.
+	Intuitivamente si può pensare a una varietà d-dimensionale immersa in $\RR^{N}$ come alla generalizzazione di una superficie in $N$ dimensioni: un insieme di punti che localmente sembra vivere in $\RR^{d}$ ma che macroscopicamente sintetizza una struttura in $\RR^{N}$.
 \vskip 0.2in
-Un esempio classico sono una sfera in $\RR^{3}$ e una circonferenza in $\RR^{2}$ che sono rispettivamente due varieta' di dimensione $2$ e $1$.
-\es
+Un esempio classico sono una sfera in $\RR^{3}$ e una circonferenza in $\RR^{2}$, rispettivamente due varietà di dimensione $2$ e $1$.
+\end{frame}
 
-\bs
+\begin{frame}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.85\textwidth]{goodandbadapprox.eps}
-\caption{A sinistra una buona approssimazione di una varieta' 1D immersa in $\RR^{2}$ dove i colori rappresentano i diversi gruppi di punti approssimati da linee. A destra una cattiva approssimazione che non preserva la geometria della varieta'.}
+\includegraphics[width=0.85\textwidth]{graphics/goodandbadapprox.eps}
+\caption{A sinistra una buona approssimazione di una varietà 1D immersa in $\RR^{2}$ dove i colori rappresentano i diversi gruppi di punti approssimati da linee. A destra una cattiva approssimazione che non preserva la geometria della varietà.}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Framework}\ec
-\begin{definition}[Varieta']
-Un insieme $M\subseteq\RR^{N}$ e' detto varieta' differenziabile di dimensione $d$ se $\forall x\in M$ esiste un aperto $V\subseteq\RR^{N}$ t.c. $x\in V$ e un aperto $W\subseteq\RR^d$ ed esiste $f:W\to\RR^{N}$ iniettiva, differenziabile e ad inversa continua t.c.
+\begin{frame}{Framework}
+\begin{definition}[Varietà]
+Un insieme $M\subseteq\RR^{N}$ è detto varietà differenziabile di dimensione $d$ se $\forall x\in M$ esiste un aperto $V\subseteq\RR^{N}$ t.c. $x\in V$ e un aperto $W\subseteq\RR^d$ ed esiste $f:W\to\RR^{N}$ iniettiva, differenziabile e ad inversa continua t.c.
 \begin{itemize}
   \item $f(W)=M\cap V$ e
   \item $Rank(Df(y)) = d\ \forall y\in W$ (Dove $Df$ indica la Jacobiana di $f$)
 \end{itemize}
 \end{definition}
 Supponiamo $f(a)=x$ allora la matrice $Df(a)$ e la corrispondente trasformazione lineare $f_{*}:\RR^{d}_{a}\to \RR^{N}_{x}$ definiscono un sottospazio di dimensione $d$ detto lo spazio tangente a $M$ in $x$ denotato $M_{x}$. \\
-Per comodita' indicheremo da qui in poi con $M_x$ lo spazio tangente ad $M$ in $x$ traslato pero' all'origine di $\RR^N$.
+Per comodità indicheremo da qui in poi con $M_x$ lo spazio tangente ad $M$ in $x$ traslato però all'origine di $\RR^N$.
 
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.5\textwidth]{manifold.eps}
+\includegraphics[width=0.5\textwidth]{graphics/manifold.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Osservazione motivante}\ec
-E' fondamentale osservare che se per opportuni $x, V$ e $W \ f$ e' lineare allora $Df(a)=Df(b) \ \forall a, b\in W$ e dunque lo spazio tangente di tutti i punti in $M\cap V$ coincide (a meno di una traslazione) e la regione di spazio puo' essere perfettamente rappresentata con dei sottospazi affini.
-Siamo allora interessati a determinare regioni dove la $\it{variazione}$ dello spazio tangente nei diversi punti e' bassa (cosi' $Df(a)\approx Df(b)$). \\
+\begin{frame}{Osservazione motivante}
+È fondamentale osservare che se per opportuni $x, V$ e $W \ f$ è lineare allora $Df(a)=Df(b) \ \forall a, b\in W$ e dunque lo spazio tangente di tutti i punti in $M\cap V$ coincide (a meno di una traslazione) e la regione di spazio può essere perfettamente rappresentata con dei sottospazi affini.
+Siamo allora interessati a determinare regioni dove la $\it{variazione}$ dello spazio tangente nei diversi punti è bassa (così $Df(a)\approx Df(b)$). \\
 Definiamo dunque una metrica tra spazi tangenti.
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Grassmann Manifold e Geodetiche}\ec
-L'insieme dei sottospazi lineari di dimensione $d$ di $\RR^{N}$ e' detto Grassmanniana indicato $G_{N,d}(\RR^{N})$. In $G_{N,d}(\RR^{N})$ e' definita la distanza geodetica tra due sottospazi a partire dai loro angoli principali. In particolare possiamo definire la distanza tra $M_x$ e $M_y$ come
+\begin{frame}{Grassmann Manifold e Geodetiche}
+L'insieme dei sottospazi lineari di dimensione $d$ di $\RR^{N}$ è detto Grassmanniana indicato $G_{N,d}(\RR^{N})$. In $G_{N,d}(\RR^{N})$ è definita la distanza geodetica tra due sottospazi a partire dai loro angoli principali. In particolare possiamo definire la distanza tra $M_x$ e $M_y$ come
 
 \begin{wrapfigure}{r}{0.4\textwidth}
     \centering
-    \includegraphics[width=0.4\textwidth]{principalangles.eps}
+    \includegraphics[width=0.4\textwidth]{graphics/principalangles.eps}
 \end{wrapfigure}
 
 \begin{equation*}
 	D_{T}\left(M_{x}, M_{y}\right)=\left(\sum_{i=1}^{d} \theta_{i}^{2}\right)^{2}=\|\theta\|_{2}
 \end{equation*}
 
-dove $\theta=\left\{\theta_{1}, \ldots, \theta_{d}\right\}$ e' il vettore \\ degli angoli principali di $M_x$ e $M_y$. \\
+dove $\theta=\left\{\theta_{1}, \ldots, \theta_{d}\right\}$ è il vettore \\ degli angoli principali di $M_x$ e $M_y$. \\
 Computabili attraverso SVD come mostrato \\
-da \textit{Andrew V. Knyazev et al.} \\
-in \textit{Principal Angles between Subspaces} \\
-\textit{in an A-Based Scalar Product (2006).}
-\es
+da \textit{Andrew V. Knyazev et al. (2006)}
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Visualmente, in $\RR^2$}\ec
+\begin{frame}{Intuitivamente, in $\RR^2$}
 \begin{center}
   \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
 
@@ -274,9 +313,9 @@ in \textit{Principal Angles between Subspaces} \\
   \end{array}$};
   \end{tikzpicture}
 \end{center}
-\es
+\end{frame}
 
-\bs
+\begin{frame}
 \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
 
 \begin{center}
@@ -394,9 +433,9 @@ spaces
 \end{array}$};
 \end{tikzpicture}
 \end{center}
-\es
+\end{frame}
 
-\bs
+\begin{frame}
 \begin{center}
   \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
   \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-0.65,xscale=0.65]
@@ -569,124 +608,118 @@ spaces
   \end{array}$};
   \end{tikzpicture}
 \end{center}
-\es
+\end{frame}
 
 
 
-\bs
-\bc{\bf\color{blue}Punto medio di Karcher}\ec
+\begin{frame}{Punto medio di Karcher}
 Siamo inoltre interessati a poter calcolare una generalizzazione della media aritmetica applicata alla Grassmanniana.
-\begin{definition}[Punto medio di Karcher su $G_{N,d}(\RR^{N})$ con distanza geodetica]
-Il punto medio di un insieme $C$ di punti di $G_{N,d}(\RR^{N})$ rispetto alla distanza $D_T$ e' dato da
+\begin{definition}[Punto medio di Karcher su $G_{N,d}(\RR^{N})$ rispetto $D_T$]
+Il punto medio di un insieme $C$ di punti di $G_{N,d}(\RR^{N})$ rispetto alla distanza $D_T$ è dato da
 \begin{equation*}
 M_{C}=\underset{M \in G_{N, d}}{\arg \min } \sum_{x \in C} D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)
 \end{equation*}
 \end{definition}
 Esistono vari metodi per risolvere in $M_C$ la precedente equazione, qui viene usata una formulazione data da $\it{J.M. Chang}$ che sfrutta la decomposizione in valori singolari (SVD).
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Clustering}\ec
-Sia $\mathcal{X} = \{x_k\in\RR^N, k\in [1, m]\}$ la rappresentazione di una varieta' attraverso un insieme di suoi punti. Sia $G_{\mathcal{X}}=G(\mathcal{X}, E)$ il grafo simmetrico non orientato che rappresenta la geometria della varieta'. Vogliamo determinare $\textbf{C}_{\mathcal{L}}=\{C_i, i\in [1, \mathcal{L}]\}$ partizione di $\mathcal{X}$ tale che $\forall i\ C_i$ possa essere ben rappresentato da un sottospazio affine che rispetti la geometria della varieta'.
+\begin{frame}{Clustering}
+Sia $\mathcal{X} = \{x_k\in\RR^N, k\in [1, m]\}$ la rappresentazione di una varietà attraverso un insieme di suoi punti. Sia $G_{\mathcal{X}}=G(\mathcal{X}, E)$ il grafo simmetrico non orientato che rappresenta la geometria della varietà. Vogliamo determinare $\textbf{C}_{\mathcal{L}}=\{C_i, i\in [1, \mathcal{L}]\}$ partizione di $\mathcal{X}$ tale che $\forall i\ C_i$ possa essere ben rappresentato da un sottospazio affine che rispetti la geometria della varietà.
 \begin{definition}[Partizione]
-$\textbf{C}_{\mathcal{L}}$ e' una partizione se $C_i\cap C_j = \emptyset \ \forall i\neq j, \ i,j\in \{1, ..., \mathcal{L} \}$ e $\bigcup_{i} C_i = \mathcal{X}$.
+$\textbf{C}_{\mathcal{L}}$ è una partizione se $C_i\cap C_j = \emptyset \ \forall i\neq j, \ i,j\in \{1, ..., \mathcal{L} \}$ e $\bigcup_{i} C_i = \mathcal{X}$.
 \end{definition}
-Non tutte le partizione saranno pero' valide una condizione sufficiente e' che la partizione sia formata solo da cluster con sottografi connessi.
+Non tutte le partizione saranno però valide una condizione sufficiente è che la partizione sia formata solo da cluster con sottografi connessi.
 \begin{definition}[Sottografo connesso]
-Dato $G_{C_i}=G(C_i, E_i)$ sottografo dove $E_i=\{a_{ij}\in E: \ x_i, x_j\in C_i\}$ diciamo che esso e' connesso se ogni coppia di nodi $x_i, x_j\in C_i$ e' connessa.
+Dato $G_{C_i}=G(C_i, E_i)$ sottografo dove $E_i=\{a_{ij}\in E: \ x_i, x_j\in C_i\}$ diciamo che esso è connesso se ogni coppia di nodi $x_i, x_j\in C_i$ è connessa.
 \end{definition}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Validita'}\ec
+\begin{frame}{Validità}
 Denotiamo l'insieme delle partizioni valide $\Phi_\mathcal{L}(\mathcal{X})$.
-\begin{definition}[Predicato di $\it{validita'}$]
+\begin{definition}[Predicato di $\it{Validità}$]
 $\Phi_\mathcal{X}(\textbf{C}_\mathcal{L}) \equiv \textbf{C}_\mathcal{L}\in \Phi_\mathcal{L}(\mathcal{X})$ definito come
 \begin{equation*}
 \begin{gathered}
 \Phi_\mathcal{X}(\textbf{C}_\mathcal{L}) = \bigwedge_{C_i\in\textbf{C}_\mathcal{L}}\phi(C_i) \\
 \phi(C_i) = 
   \begin{cases}
-                                   Vero & \text{Se $C_i$ e' connesso} \\
+                                   Vero & \text{Se $C_i$ è connesso} \\
                                    Falso & \text{altrimenti} \\
   \end{cases}
 \end{gathered}
 \end{equation*}
 \end{definition}
-\bc{\bf\color{blue}Fondibilita'}\ec
-Possiamo definire anche un predicato di fondibilita' $\Psi$ che descrive se due cluster possono essere uniti dando vita a una partizione ancora valida, i predicati di fondibilita' e validita' sono legati dalla relazione seguente: \\
-Se $C_i,C_j\neq \emptyset, C_i\cap C_j =\emptyset, \ \phi(C_i)\wedge\phi(C_j)$ e $\Psi(C_i, C_j) \implies \phi(C_i\cup C_j)$
-Evitando una definizione formale, due cluster saranno fondibili se esiste un $\it{edge}$ che li collega.
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Fondibilità}
+Possiamo definire anche un predicato di fondibilità $\Psi$ che descrive se due cluster possono essere uniti dando vita a una partizione ancora valida
+\begin{definition}[Predicato di $\it{Fondibilità}$ (informale)]
+I predicati di fondibilità e validità sono legati dalla relazione:
+Se $C_i,C_j\neq \emptyset, C_i\cap C_j =\emptyset, \ \phi(C_i)\wedge\phi(C_j)$ e $\Psi(C_i, C_j) \implies \phi(C_i\cup C_j)$
+\end{definition}
+Evitando una definizione formale, due cluster saranno fondibili se esiste un $\it{edge}$ che li collega.
+\end{frame}
+
+\begin{frame}
 \begin{figure}[t]
 \centering
-\includegraphics[width=1\textwidth]{connectedclusters.png}
-\caption{A sinistra due cluster $C_i$ e $C_k$ connessi e dunque fondibili. A destra tre cluster dove sia $C_i$ che $C_k$ sono fondibili con $C_j$ ma $C_i$ e $C_k$ non sono fondibili. \\
-E' facile osservare che fondendo le coppie (fondibili) in entrambe le configurazioni la partizione risultante e' composta da sottografi connessi e dunque valida.}
+\includegraphics[width=1\textwidth]{graphics/connectedclusters.png}
+\caption{A sinistra due cluster $C_i$ e $C_k$ connessi e dunque fondibili. A destra tre cluster dove sia $C_i$ che $C_k$ sono fondibili con $C_j$ ma $C_i$ e $C_k$ non sono fondibili. È facile osservare che fondendo le coppie (fondibili) in entrambe le configurazioni la partizione risultante è composta da sottografi connessi e dunque valida.}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Bonta' di una partizione}\ec
-Cerchiamo ora una funzione $\mathcal{P}$ che valuti la bonta' di una partizione, definiamo
+\begin{frame}{Bontà di una partizione}
+Cerchiamo ora una funzione $\mathcal{P}$ che valuti la bontà di una partizione, definiamo
 \begin{equation*}
 \begin{gathered}
 	\mathcal{P}(\textbf{C}) = \sum_{C_i\in\textbf{C}}p(C_i) \ \ \text{con} \\
 	p(C_i) = \sum_{x\in C_i}D^{2}_T(M_{C_i}, M_x)
 \end{gathered}
 \end{equation*}
-Osserviamo che per definizione $\mathcal{P}$ e' distributiva sui cluster e non negativa, inoltre e' nulla sui cluster formati da singoletti.
-
-\bc{\bf\color{blue}Il problema di approssimazione}\ec
-Ora che abbiamo una misura di bonta' possiamo definire il nostro problema di approssimazione come la ricerca della partizione $\mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})$ dove
+Osserviamo che per definizione $\mathcal{P}$ è distributiva sui cluster e non negativa, inoltre è nulla sui cluster formati da singoletti.
+Ora che abbiamo una misura di bontà possiamo definire il nostro problema di approssimazione come la ricerca della partizione $\mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})$ dove
 \begin{equation*}
 \mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})=\underset{\mathbf{C} \in \Phi_{\mathcal{L}}(\mathcal{X})}{\operatorname{argmin}} \mathcal{P}(C)= \underset{\mathbf{C} \in \Phi_{\mathcal{L}}(\mathcal{X})}{\operatorname{argmin}} \sum_{C_{i} \in \mathbf{C}} \sum_{x \in C_{i}} D_{T}^{2}\left(M_{C_{i}}, M_{x}\right)
 \end{equation*}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Verso una formulazione greedy}\ec
-Vogliamo formulare una versione meno accurata ma piu' efficiente,
-introduciamo alcuni rilassamenti al problema andando a determinare un algoritmo greedy e bottom-up, ci serve pero' un modo per valutare la bonta' di una fusione di cluster.
-\begin{definition}[Misura di Dissimilarita']
+\begin{frame}{Verso una formulazione greedy}
+Vogliamo formulare una versione meno accurata ma più efficiente,
+introduciamo alcuni rilassamenti al problema andando a determinare un algoritmo greedy e bottom-up, ci serve però un modo per valutare la bontà di una fusione di cluster.
+\begin{definition}[Misura di Dissimilarità]
 $d:(C_i, C_j)\to R^{+}_0$ \\
 $d(C_i, C_j) = p(C_i\cup C_j) - p(C_i) - p(C_j)$
 \end{definition}
-E' facile osservare che $d\geq 0$. \\
+È facile osservare che $d\geq 0$. \\
 
 Possiamo allora riscrivere il problema nella forma
 $\mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})=\left(\mathbf{C}_{\mathcal{L}+1}^{\prime}(\mathcal{X}) \backslash\left\{C_{i}^{\prime}, C_{j}^{\prime}\right\}\right) \cup\left\{C_{i}^{\prime} \cup C_{j}^{\prime}\right\}$ \ dove \\
-$\left(\mathbf{C}_{\mathcal{L}+1}^\prime(\mathcal{X}), C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \mathbf{C}, \ \mathbf{C} \in \Phi_{\mathcal{L}+1} \atop \Psi(C_i, C_j) \ \text{e' vera}}{\operatorname{argmin}}\left(\mathcal{P}(\mathbf{C})+d(C_{i}, C_{j})\right)$
-\es
+$\left(\mathbf{C}_{\mathcal{L}+1}^\prime(\mathcal{X}), C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \mathbf{C}, \ \mathbf{C} \in \Phi_{\mathcal{L}+1} \atop \Psi(C_i, C_j) \ \text{è vera}}{\operatorname{argmin}}\left(\mathcal{P}(\mathbf{C})+d(C_{i}, C_{j})\right)$
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Approccio dinamico e greedy relaxation}\ec
+\begin{frame}{Approccio dinamico e greedy relaxation}
 Questa formulazione permette un approccio dinamico, per avere la migliore partizione di $\mathcal{L}$ cluster possiamo controllare tutte le partizioni di $\mathcal{L} + 1$ cluster e unire i due cluster a minor costo. \\
 Deriviamo un algoritmo greedy togliendo la ricerca su $\Phi_{\mathcal{L}+1}$ e otteniamo
 \vskip 0.05in
 $\widehat{\mathbf{C}}_{\mathcal{L}}(\mathcal{X})=\left(\mathbf{C}_{\mathcal{L}+1}(\mathcal{X}) \backslash\left\{C_{i}^{\prime}, C_{j}^{\prime}\right\}\right) \cup\left\{C_{i}^{\prime} \cup C_{j}^{\prime}\right\}$ \\
-dove \ $\left(C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \widehat{\mathbf{C}}_{\mathcal{L} + 1}(\mathcal{X}) \atop \Psi(C_i, C_j) \ \text{e' vera}}{\operatorname{argmin}}d(C_{i}, C_{j})$ \\
-Questo riduce notevolmente il costo computazionale ma non assicura piu' l'ottimalita' della soluzione trovata. \\
+dove \ $\left(C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \widehat{\mathbf{C}}_{\mathcal{L} + 1}(\mathcal{X}) \atop \Psi(C_i, C_j) \ \text{è vera}}{\operatorname{argmin}}d(C_{i}, C_{j})$ \\
+Questo riduce notevolmente il costo computazionale ma non assicura più l'ottimalità della soluzione trovata. \\
 \vskip 0.1in
 Siamo ora pronti a descrivere l'algoritmo di clustering.
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Inizializzazione: $G_\mathcal{X}$ e $M_x$}\ec
-$G_\mathcal{X}$ e' costruita connettendo ogni punto ai suoi vicini attraverso una $\it{knn}$, per ogni punto $x\in\mathcal{X}$
+\begin{frame}{Inizializzazione: $G_\mathcal{X}$ e $M_x$}
+$G_\mathcal{X}$ è costruita connettendo ogni punto ai suoi vicini attraverso una $\it{knn}$, per ogni punto $x\in\mathcal{X}$
 definiamo inoltre $N_x = \{y\in\mathcal{X} : \left( x, y \right) \in E \}$ l'insieme dei neighbors di $x$.
-Ora $M_x$ puo' essere approssimato come il sottospazio di dimensione $d$ che meglio approssima $N^{0}_x$. \\
+Ora $M_x$ può essere approssimato come il sottospazio di dimensione $d$ che meglio approssima $N^{0}_x$. \\
 Per il teorema di $\it{Eckart}$\ -$\it{Young}$ questo corrisponde a determinare la $d$-$rank$ SVD di $\left[N^{0}_x\right]$.
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Algoritmo di merging}\ec
+\begin{frame}{Algoritmo di merging (1)}
 Fissiamo $n=|\mathcal{X}|$ e la partizione iniziale ottimale $C^{*}_n = \{\{x\}; x\in\mathcal{X}\}$ \\
-Ad ogni iterazione uniamo due cluster $C_i$ e $C_j$, Il predicato di fondibilita' precedentemente definito ci permette
+Ad ogni iterazione uniamo due cluster $C_i$ e $C_j$, Il predicato di fondibilità precedentemente definito ci permette
 di determinare tutti i possibili $C_i$ e $C_j$ fondibili: essi saranno i cluster che sono connessi per almeno un $\it{edge}$.
-La dissimilarita' tra due cluster era definita come \\
+La dissimilarità tra due cluster era definita come \\
 \begin{equation*}
 \begin{aligned}
 d(C_i, C_j) =& \ p(C_i\cup C_j) - p(C_i) - p(C_j) \\
@@ -694,13 +727,13 @@ d(C_i, C_j) =& \ p(C_i\cup C_j) - p(C_i) - p(C_j) \\
 &+\sum_{x \in C_{j}} \left[D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right)-D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)\right]
 \end{aligned}
 \end{equation*}
-\es
+\end{frame}
 
-\bs
-Tale equazione e' costosa da computare poiche' richiede il calcolo di $M_{C_i\cup C_j}$ per ogni ipotetica fusione.
-Vorremmo una formulazione che dipenda solo da valori gia' calcolati e.g. lo spazio tangente medio di ogni cluster e
+\begin{frame}{Algoritmo di merging (2)}
+Tale equazione è costosa da computare poichè richiede il calcolo di $M_{C_i\cup C_j}$ per ogni ipotetica fusione.
+Vorremmo una formulazione che dipenda solo da valori già calcolati e.g. lo spazio tangente medio di ogni cluster e
 la distanza tra esso e gli spazi tangenti dei singoli punti del cluster. \\
-Osserviamo $\sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right) \leq \sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)$, provabile p.a.
+Osserviamo che $\sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right) \leq \sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)$, provabile p.a. (Appendice (1)) \\
 Lo stesso vale naturalmente per $C_j$, inoltre per la disuguaglianza triangolare
 \begin{equation*}
   \begin{array}{ll}
@@ -708,30 +741,31 @@ Lo stesso vale naturalmente per $C_j$, inoltre per la disuguaglianza triangolare
     D_{T}\left(M_{x}, M_{C_{i}}\right) \leq D_{T}\left(M_{x}, M_{C_{j}}\right)+D_{T}\left(M_{C_{i}}, M_{C_{j}}\right), & \forall x \in \mathcal{X}
     \end{array}
 \end{equation*}
-Quindi elevando al quadrato e sommando sui punti di $C_i$ e $C_j$ rispettivamente otteniamo la formula finale per la nostra dissimilarita' approssimata $\tilde{d}$
+Allora elevando al quadrato e sommando sui punti di $C_i$ e $C_j$ rispettivamente otteniamo la formula finale per la nostra dissimilarità approssimata $\tilde{d}$
 che dipende \underline{solo} da informazioni pregresse
+\end{frame}
+
+\begin{frame}{Algoritmo di merging (3)}
 \begin{equation*}
   \begin{aligned}
-    &d\left(C_{i}, C_{j}\right) \leq\left(\left|C_{i}\right|+\left|C_{j}\right|\right) D_{T}^{2}\left(M_{C_{i}}, M_{C_{j}}\right) \\
+    &d\left(C_{i}, C_{j}\right) \leq \tilde{d}\left(C_{i}, C_{j}\right) =\left(\left|C_{i}\right|+\left|C_{j}\right|\right) D_{T}^{2}\left(M_{C_{i}}, M_{C_{j}}\right) \\
     &\quad+2 D_{T}\left(M_{C_{i}}, M_{C_{j}}\right)\left[\sum_{x \in C_{i}} D_{T}\left(M_{x}, M_{C_{i}}\right)+\sum_{x \in C_{j}} D_{T}\left(M_{x}, M_{C_{j}}\right)\right]
   \end{aligned}
 \end{equation*}
-Calcoleremo cosi' lo spazio tangente medio solo per il nuovo cluster creato.
-\es
+Calcoleremo così lo spazio tangente medio solo per il nuovo cluster creato.
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Schema dell'algoritmo completo}\ec
+\begin{frame}{Schema dell'algoritmo completo}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.55\textwidth]{algorithm.eps}
+\includegraphics[width=0.52\textwidth]{graphics/algorithm.eps}
 \end{figure}
-Nelle linee $14-16$ vengono computati i sottospazi affini finali attraverso SVD.
-\es
+Nelle linee $14-16$ vengono computati i sottospazi affini finali.
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Risultati sperimentali}\ec
+\begin{frame}{Risultati sperimentali}
 Iniziamo con l'approssimazione di 2 dataset sintetici 3D, la Swiss Roll e la S-Curve. I test sono condotti con 5000 punti,
-un neighborhood size di $k=15$ e $d=2$, la performance e' valutata con il $\it{mean\ squared\ reconstruction\ error.}$
+un neighborhood size di $k=15$ e $d=2$, la performance è valutata con il $\it{mean\ squared\ reconstruction\ error.}$
 $M S R E=\frac{1}{N} \sum_{i=1}^{N}\left\|x_{i}-\hat{x}_{i}\right\|^{2}$. \\
 Riportiamo anche i tempi di esecuzione dell'algoritmo su tali dataset:
 \begin{center}
@@ -742,107 +776,103 @@ Riportiamo anche i tempi di esecuzione dell'algoritmo su tali dataset:
     \hline
     \end{tabular}
 \end{center}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Cluster finali S-Curve}\ec
+\begin{frame}{Cluster finali S-Curve}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.95\textwidth]{scurve.eps}
+\includegraphics[width=0.95\textwidth]{graphics/scurve.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Errore}
 \begin{figure}[b]
 \centering
-\includegraphics[width=\textwidth]{scurve_msre.eps}
+\includegraphics[width=\textwidth]{graphics/scurve_msre.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Cluster finali Swiss Roll}\ec
+\begin{frame}{Cluster finali Swiss Roll}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.92\textwidth]{swissroll.eps}
+\includegraphics[width=0.92\textwidth]{graphics/swissroll.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Errore}
 \begin{figure}[b]
 \centering
-\includegraphics[width=\textwidth]{swiss_msre.eps}
+\includegraphics[width=\textwidth]{graphics/swiss_msre.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Patch Naturali}\ec
-Un ulteriore test condotto e' sulla ricostruzione di patch di immagini naturali che si
-assume appartengano ad una varieta' di dimensione inferiore nel lavoro di $\it{Ramamurthy, et\ al. - Improved\ sparse\
-coding\ using\ manifold\ projections}$. Il dataset utilizzato e' il Berkeley Segmentation Dataset (BSDS),
+\begin{frame}{Patch Naturali}
+Un ulteriore test condotto è sulla ricostruzione di patch di immagini naturali che si
+assume appartengano ad una varietà di dimensione inferiore nel lavoro di $\it{Ramamurthy, et\ al. - Improved\ sparse\
+coding\ using\ manifold\ projections}$. Il dataset utilizzato è il Berkeley Segmentation Dataset (BSDS),
 le patch sono di dimensione 8x8 e i test condotti con 5000 punti e k=30.
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Errore}
 \begin{figure}[b]
 \centering
-\includegraphics[width=\textwidth]{naturalpatches.eps}
+\includegraphics[width=\textwidth]{graphics/naturalpatches.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}VidTIMIT Face dataset}\ec
-Sempre su immagini si e' valutato il potere ricostruttivo dell'algoritmo su un dataset di facce
+\begin{frame}{VidTIMIT Face dataset}
+Sempre su immagini si è valutato il potere ricostruttivo dell'algoritmo su un dataset di facce
 prese dal VidTIMIT database. Le facce di un singolo soggetto che sposta la testa in varie direzioni sono
 state estratte utilizzando un algoritmo di face detection classico sviluppato da $\it{P.Viola}$ e successivamente
 ridimensionate a 26x26 pixel. \\
-Assumendo che le faccia in diverse pose di una stessa persona appartenga ad una varieta' di dimensione inferiore si e' applicato
-l'ACDT per approssimare tale varieta'; il numero di punti di training variano da soggetto a soggetto, mediamente sono 750,
+Assumendo che le faccia in diverse pose di una stessa persona appartenga ad una varietà di dimensione inferiore si è applicato
+l'ACDT per approssimare tale varietà; il numero di punti di training variano da soggetto a soggetto, mediamente sono 750,
 k=15 e la dimensione d=10 (dove $\RR^{N} = \RR^{676}$). \\
 Le ricostruzioni sono fatte per $\mathcal{L}=12$.
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Errore}
 \begin{figure}[b]
 \centering
-\includegraphics[width=\textwidth]{vidtimit_msre.eps}
+\includegraphics[width=\textwidth]{graphics/vidtimit_msre.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Ricostruzione}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.55\textwidth]{rec_sub0_vt.eps}
+\includegraphics[width=0.5\textwidth]{graphics/rec_sub0_vt.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Cluster Risultanti}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.6\textwidth]{cluster_sub0.eps}
+\includegraphics[width=0.55\textwidth]{graphics/cluster_sub0.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Ricostruzione}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.55\textwidth]{vidtimit_sub1_rec.eps}
+\includegraphics[width=0.5\textwidth]{graphics/vidtimit_sub1_rec.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Cluster Risultanti}
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.55\textwidth]{vidtimit_cluster_sub1.eps}
+\includegraphics[width=0.55\textwidth]{graphics/vidtimit_cluster_sub1.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}MNIST}\ec
-L'ultimo test condotto e' sul MNIST, dataset di digit scritte a mano di dimensione 28x28.
-Per valutare la potenza dell'algoritmo al fine della classificazione si e' valutato un indice chiamato
+\begin{frame}{MNIST}
+L'ultimo test condotto è sul MNIST, dataset di digit scritte a mano di dimensione 28x28.
+Per valutare la potenza dell'algoritmo al fine della classificazione si è valutato un indice chiamato
 $\it{Geometric\ Separability\ Index}$ presentato nel paper di $\it{C. Thornton,\ Separability\ is\ a\ learner's\ best\ friend}$.
-Questo indice e' definito come il rateo di coppie di neighbors che condividono la stessa classe. Il test e' condotto con 2000 punti casuali per ogni digit k=15 e d=100.
+Questo indice è definito come il rateo di coppie di neighbors che condividono la stessa classe. Il test è condotto con 2000 punti casuali per ogni digit k=15 e d=100.
 Il GSI viene valutato nello spazio originale e nello spazio delle distanze dagli spazi affini trovati.
+\vskip 0.2in
 \begin{center}
     \begin{tabular}{ |c|c|c| }
     \hline
@@ -851,45 +881,40 @@ Il GSI viene valutato nello spazio originale e nello spazio delle distanze dagli
     \hline
     \end{tabular}
 \end{center}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Precisione e Matrice di Confusione}
 Riportiamo anche l'accuracy e la confusion matrix relativa alla classificazione di 10000 punti del validation set del MNIST per $\mathcal{L}=12$. \\
 Accuracy: 96.78\%
 \begin{figure}[b]
 \centering
-\includegraphics[width=0.75\textwidth]{confusionmatrix.eps}
+\includegraphics[width=0.65\textwidth]{graphics/confusionmatrix.eps}
 \end{figure}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Appendice}\ec
+\begin{frame}{Appendice (1)}
 \begin{prop}
   \begin{equation*}
     \sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{i} \cup C_{j}}\right) \leq \sum_{x \in C_{i}} D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)
   \end{equation*}
 \end{prop}
-\begin{proof}\hfill
+\begin{proof}
     \begin{center}
     Supponiamo per assurdo che
     \end{center}
     \begin{gather*}
     \sum _{x\in C_{i}} D_{T}^{2}( M_{x} ,M_{C_{i} \cup C_{j}}) \geq \sum _{x\in C_{i}} D_{T}^{2}( M_{x} ,M_{C_{j}})
     \end{gather*}
-    \begin{center}
-    allora
-    \end{center}
     \begin{equation*}
-    \sum _{x\in C_{i} \cup C_{j}} D_{T}^{2}( M_{x} ,M_{C_{i} \cup C_{j}}) \geq \sum _{x\in C_{i} \cup C_{j}} D_{T}^{2}( M_{x} ,M_{C_{j}})
+    \implies \sum _{x\in C_{i} \cup C_{j}} D_{T}^{2}( M_{x} ,M_{C_{i} \cup C_{j}}) \geq \sum _{x\in C_{i} \cup C_{j}} D_{T}^{2}( M_{x} ,M_{C_{j}})
     \end{equation*}
     \begin{center}
     Ma questo contraddice la definizione di $\displaystyle M_{C_{i} \cup C_{j}} .$
     \end{center}
 \end{proof}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Appendice}\ec
+\begin{frame}{Appendice (2)}
 Passaggi per il calcolo di $\tilde{d}$, ricordiamo
 
 \begin{equation*}
@@ -909,9 +934,9 @@ Lo stesso vale naturalmente per $C_j$, sostituendo in $d$ otteniamo:
   &+\sum_{x \in C_{j}}\left[\textcolor{red}{D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)}-D_{T}^{2}\left(M_{x}, M_{C_{j}}\right)\right]
   \end{aligned}
 \end{equation*}
-\es
+\end{frame}
 
-\bs
+\begin{frame}{Appendice (2)}
 Ora per la disuguaglianza triangolare si ha
 
 \begin{equation*}
@@ -930,11 +955,10 @@ E quindi elevando al quadrato e sommando sui punti di $C_i$ e $C_j$ rispettivame
   &\quad \leq 2 D_{T}\left(M_{C_{i}}, M_{C_{j}}\right) \sum_{x \in C_{j}} D_{T}\left(M_{x}, M_{C_{j}}\right)+\left|C_{j}\right| D_{T}^{2}\left(M_{C_{i}}, M_{C_{j}}\right)
   \end{aligned}
 \end{equation*}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Appendice}\ec
-Otteniamo cosi' la formula finale per la nostra dissimilarita' approssimata $\tilde{d}$ che dipende \underline{solo}
+\begin{frame}{Appendice (2)}
+Otteniamo così la formula finale per la nostra dissimilarità approssimata $\tilde{d}$ che dipende \underline{solo}
 da informazioni pregresse
 \begin{equation*}
   \begin{aligned}
@@ -942,10 +966,9 @@ da informazioni pregresse
     &\quad+2 D_{T}\left(M_{C_{i}}, M_{C_{j}}\right)\left[\sum_{x \in C_{i}} D_{T}\left(M_{x}, M_{C_{i}}\right)+\sum_{x \in C_{j}} D_{T}\left(M_{x}, M_{C_{j}}\right)\right]
   \end{aligned}
 \end{equation*}
-\es
+\end{frame}
 
-\bs
-\bc{\bf\color{blue}Appendice}\ec
+\begin{frame}{Appendice (3)}
 \begin{prop}
   $d\geq 0$
 \end{prop}
@@ -960,6 +983,6 @@ d\left(C_{i}, C_{j}\right)=& \sum_{x \in C_{i} \cup C_{j}} D_{T}^{2}\left(M_{x},
 \end{equation*}
 Da cui segue la tesi data la definizione di $M_{C_i}$, $M_{C_j}$ e $M_{C_i\cup C_j}$. \\
 \end{proof}
-\es
+\end{frame}
 
 \end{document}
