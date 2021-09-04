@@ -25,7 +25,6 @@
 \usepackage{verbatim}
 
 \usepackage{graphicx,color,fancybox,amsfonts,amsmath}
-\usepackage[italian]{babel}
 \usepackage{amsthm}
 \usepackage{mathtools} %loads amsmath as well
 \usepackage{wrapfig}
@@ -71,13 +70,13 @@
 
 %%% Additional packages, added by Jesper Erixon
 % Use babel to neatly translate 'abstract' etc. to swedish  or other supported language
-%\usepackage[swedish]{babel}
+\usepackage[italian]{babel}
 
 %%% Enter additional packages below (or above, I can't stop you)! / Jesper
 \renewcommand{\proofname}{\sffamily{Proof}}
 
 \theoremstyle{definition}
-% \newtheorem{definition}{Def.}
+\newtheorem{deff}{Definizione}
 \newtheorem*{prop}{Proposizione}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -102,10 +101,10 @@
 
 \begin{frame}{Obiettivi}
 Partendo dal fatto che dati appartenenti a spazi dimensionalmente complessi siano difficili da trattare (the curse of dimensionality)
-si osserva che spesso tali dati possiedono strutture sottostanti che possono permettere una rappresentazione adeguata in dimensione inferiore.
+si osserva che spesso essi possiedono strutture sottostanti che possono permettere una rappresentazione adeguata in dimensione inferiore.
 \vskip 0.2in
 
-In questo lavoro ci si propone di costruire un algoritmo in grado di approssimare tali dati attraverso un modello semplice e computazionalmente efficiente ossia un set di sottospazi affini di dimensione fissata cercando di preservare globalmente la geometria della struttura di partenza.
+In questo lavoro ci si propone di costruire un algoritmo in grado di approssimare un set di dati attraverso un modello semplice e computazionalmente efficiente ossia dei sottospazi affini di dimensione fissata cercando di preservare globalmente la geometria della struttura di partenza.
 \end{frame}
 
 \begin{frame}{Matematicamente}
@@ -124,23 +123,23 @@ Un esempio classico sono una sfera in $\RR^{3}$ e una circonferenza in $\RR^{2}$
 \end{frame}
 
 \begin{frame}{Framework}
-\begin{definition}[Varietà]
+\begin{deff}[Varietà]
 Un insieme $M\subseteq\RR^{N}$ è detto varietà differenziabile di dimensione $d$ se $\forall x\in M$ esiste un aperto $V\subseteq\RR^{N}$ t.c. $x\in V$ e un aperto $W\subseteq\RR^d$ ed esiste $f:W\to\RR^{N}$ iniettiva, differenziabile e ad inversa continua t.c.
 \begin{itemize}
   \item $f(W)=M\cap V$ e
   \item $Rank(Df(y)) = d\ \forall y\in W$ (Dove $Df$ indica la Jacobiana di $f$)
 \end{itemize}
-\end{definition}
+\end{deff}
 Supponiamo $f(a)=x$ allora la matrice $Df(a)$ e la corrispondente trasformazione lineare $f_{*}:\RR^{d}_{a}\to \RR^{N}_{x}$ definiscono un sottospazio di dimensione $d$ detto lo spazio tangente a $M$ in $x$ denotato $M_{x}$. \\
 Per comodità indicheremo da qui in poi con $M_x$ lo spazio tangente ad $M$ in $x$ traslato però all'origine di $\RR^N$.
+\end{frame}
 
+\begin{frame}{Osservazione motivante}
 \begin{figure}[b]
 \centering
 \includegraphics[width=0.5\textwidth]{graphics/manifold.eps}
 \end{figure}
-\end{frame}
 
-\begin{frame}{Osservazione motivante}
 È fondamentale osservare che se per opportuni $x, V$ e $W \ f$ è lineare allora $Df(a)=Df(b) \ \forall a, b\in W$ e dunque lo spazio tangente di tutti i punti in $M\cap V$ coincide (a meno di una traslazione) e la regione di spazio può essere perfettamente rappresentata con dei sottospazi affini.
 Siamo allora interessati a determinare regioni dove la $\it{variazione}$ dello spazio tangente nei diversi punti è bassa (così $Df(a)\approx Df(b)$). \\
 Definiamo dunque una metrica tra spazi tangenti.
@@ -155,15 +154,16 @@ L'insieme dei sottospazi lineari di dimensione $d$ di $\RR^{N}$ è detto Grassma
 \end{wrapfigure}
 
 \begin{equation*}
-	D_{T}\left(M_{x}, M_{y}\right)=\left(\sum_{i=1}^{d} \theta_{i}^{2}\right)^{2}=\|\theta\|_{2}
+	D_{T}\left(M_{x}, M_{y}\right)=\left(\sum_{i=1}^{d} \theta_{i}^{2}\right)^{\frac{1}{2}}=\|\theta\|_{2}
 \end{equation*}
 
 dove $\theta=\left\{\theta_{1}, \ldots, \theta_{d}\right\}$ è il vettore \\ degli angoli principali di $M_x$ e $M_y$. \\
-Computabili attraverso SVD come mostrato \\
-da \textit{Andrew V. Knyazev et al. (2006)}
+Computabili attraverso SVD \\
+come mostrato da
+\textit{Andrew V. Knyazev et al. (2006)}
 \end{frame}
 
-\begin{frame}{Intuitivamente, in $\RR^2$}
+\begin{frame}{Intuitivamente, in $\RR^2$, $d=1$}
 \begin{center}
   \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
 
@@ -305,7 +305,7 @@ da \textit{Andrew V. Knyazev et al. (2006)}
   \draw  [draw opacity=0][fill={rgb, 255:red, 245; green, 166; blue, 35 }  ,fill opacity=1 ] (385.46,126.66) .. controls (383.05,126.66) and (381.09,124.7) .. (381.09,122.28) .. controls (381.1,119.87) and (383.06,117.91) .. (385.47,117.91) .. controls (387.89,117.92) and (389.85,119.88) .. (389.84,122.29) .. controls (389.84,124.71) and (387.88,126.67) .. (385.46,126.66) -- cycle ;
   
   % Text Node
-  \draw (315,230) node [anchor=north west][inner sep=0.75pt]    {$after\ k\ steps$};
+  \draw (313,230) node [anchor=north west][inner sep=0.75pt]    {$after\ k\ steps$};
   % Text Node
   \draw (431,39) node [anchor=north west][inner sep=0.75pt]    {$ \begin{array}{l}
   merged\\
@@ -315,7 +315,7 @@ da \textit{Andrew V. Knyazev et al. (2006)}
 \end{center}
 \end{frame}
 
-\begin{frame}
+\begin{frame}{Intuitivamente, in $\RR^2$, $d=1$}
 \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
 
 \begin{center}
@@ -435,10 +435,10 @@ spaces
 \end{center}
 \end{frame}
 
-\begin{frame}
+\begin{frame}{Intuitivamente, in $\RR^2$, $d=1$}
 \begin{center}
   \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
-  \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-0.65,xscale=0.65]
+  \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-0.625,xscale=0.625]
   %uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
   %Shape: Rectangle [id:dp7153873112000637] 
   \draw   (0.25,20) -- (660,20) -- (660,270) -- (0.25,270) -- cycle ;
@@ -614,33 +614,33 @@ spaces
 
 \begin{frame}{Punto medio di Karcher}
 Siamo inoltre interessati a poter calcolare una generalizzazione della media aritmetica applicata alla Grassmanniana.
-\begin{definition}[Punto medio di Karcher su $G_{N,d}(\RR^{N})$ rispetto $D_T$]
+\begin{deff}[Punto medio di Karcher su $G_{N,d}(\RR^{N})$ rispetto $D_T$]
 Il punto medio di un insieme $C$ di punti di $G_{N,d}(\RR^{N})$ rispetto alla distanza $D_T$ è dato da
 \begin{equation*}
-M_{C}=\underset{M \in G_{N, d}}{\arg \min } \sum_{x \in C} D_{T}^{2}\left(M_{x}, M_{C_{i}}\right)
+M_{C}=\underset{M \in G_{N, d}}{\arg \min } \sum_{x \in C} D_{T}^{2}\left(M_{x}, M\right)
 \end{equation*}
-\end{definition}
+\end{deff}
 Esistono vari metodi per risolvere in $M_C$ la precedente equazione, qui viene usata una formulazione data da $\it{J.M. Chang}$ che sfrutta la decomposizione in valori singolari (SVD).
 \end{frame}
 
 \begin{frame}{Clustering}
 Sia $\mathcal{X} = \{x_k\in\RR^N, k\in [1, m]\}$ la rappresentazione di una varietà attraverso un insieme di suoi punti. Sia $G_{\mathcal{X}}=G(\mathcal{X}, E)$ il grafo simmetrico non orientato che rappresenta la geometria della varietà. Vogliamo determinare $\textbf{C}_{\mathcal{L}}=\{C_i, i\in [1, \mathcal{L}]\}$ partizione di $\mathcal{X}$ tale che $\forall i\ C_i$ possa essere ben rappresentato da un sottospazio affine che rispetti la geometria della varietà.
-\begin{definition}[Partizione]
-$\textbf{C}_{\mathcal{L}}$ è una partizione se $C_i\cap C_j = \emptyset \ \forall i\neq j, \ i,j\in \{1, ..., \mathcal{L} \}$ e $\bigcup_{i} C_i = \mathcal{X}$.
-\end{definition}
-Non tutte le partizione saranno però valide una condizione sufficiente è che la partizione sia formata solo da cluster con sottografi connessi.
-\begin{definition}[Sottografo connesso]
-Dato $G_{C_i}=G(C_i, E_i)$ sottografo dove $E_i=\{a_{ij}\in E: \ x_i, x_j\in C_i\}$ diciamo che esso è connesso se ogni coppia di nodi $x_i, x_j\in C_i$ è connessa.
-\end{definition}
+\begin{deff}[Partizione]
+$\textbf{C}_{\mathcal{L}}$ è una partizione se \\ $C_i\cap C_j = \emptyset \ \forall i\neq j, \ i,j\in \{1, ..., \mathcal{L} \}$ e $\bigcup_{i} C_i = \mathcal{X}$.
+\end{deff}
+Non tutte le partizione saranno però valide, una condizione sufficiente è che la partizione sia formata solo da cluster con sottografi connessi.
 \end{frame}
 
-\begin{frame}{Validità}
+\begin{frame}{Connessione e Validità}
+\begin{deff}[Sottografo connesso]
+Dato $G_{C_i}=G(C_i, E_i)$ sottografo dove $E_i=\{a_{ij}\in E: \ x_i, x_j\in C_i\}$ diciamo che esso è connesso se ogni coppia di nodi $x_i, x_j\in C_i$ è connessa.
+\end{deff}
 Denotiamo l'insieme delle partizioni valide $\Phi_\mathcal{L}(\mathcal{X})$.
-\begin{definition}[Predicato di $\it{Validità}$]
-$\Phi_\mathcal{X}(\textbf{C}_\mathcal{L}) \equiv \textbf{C}_\mathcal{L}\in \Phi_\mathcal{L}(\mathcal{X})$ definito come
+\begin{deff}[Predicato di Validità]
+$\mathit{\Phi}_\mathcal{X}(\textbf{C}_\mathcal{L}) \equiv \textbf{C}_\mathcal{L}\in \Phi_\mathcal{L}(\mathcal{X})$ definito come
 \begin{equation*}
 \begin{gathered}
-\Phi_\mathcal{X}(\textbf{C}_\mathcal{L}) = \bigwedge_{C_i\in\textbf{C}_\mathcal{L}}\phi(C_i) \\
+\mathit{\Phi}_\mathcal{X}(\textbf{C}_\mathcal{L}) = \bigwedge_{C_i\in\textbf{C}_\mathcal{L}}\phi(C_i) \\
 \phi(C_i) = 
   \begin{cases}
                                    Vero & \text{Se $C_i$ è connesso} \\
@@ -648,23 +648,23 @@ $\Phi_\mathcal{X}(\textbf{C}_\mathcal{L}) \equiv \textbf{C}_\mathcal{L}\in \Phi_
   \end{cases}
 \end{gathered}
 \end{equation*}
-\end{definition}
+\end{deff}
 \end{frame}
 
 \begin{frame}{Fondibilità}
 Possiamo definire anche un predicato di fondibilità $\Psi$ che descrive se due cluster possono essere uniti dando vita a una partizione ancora valida
-\begin{definition}[Predicato di $\it{Fondibilità}$ (informale)]
+\begin{deff}[Predicato di Fondibilità (informale)]
 I predicati di fondibilità e validità sono legati dalla relazione:
 Se $C_i,C_j\neq \emptyset, C_i\cap C_j =\emptyset, \ \phi(C_i)\wedge\phi(C_j)$ e $\Psi(C_i, C_j) \implies \phi(C_i\cup C_j)$
-\end{definition}
+\end{deff}
 Evitando una definizione formale, due cluster saranno fondibili se esiste un $\it{edge}$ che li collega.
 \end{frame}
 
-\begin{frame}
+\begin{frame}{Cluster fondibili e non fondibili}
 \begin{figure}[t]
 \centering
 \includegraphics[width=1\textwidth]{graphics/connectedclusters.png}
-\caption{A sinistra due cluster $C_i$ e $C_k$ connessi e dunque fondibili. A destra tre cluster dove sia $C_i$ che $C_k$ sono fondibili con $C_j$ ma $C_i$ e $C_k$ non sono fondibili. È facile osservare che fondendo le coppie (fondibili) in entrambe le configurazioni la partizione risultante è composta da sottografi connessi e dunque valida.}
+\caption{A sinistra due cluster $C_i$ e $C_k$ connessi e dunque fondibili. A destra tre cluster dove sia $C_i$ che $C_k$ sono fondibili con $C_j$ ma $C_i$ e $C_k$ non sono fondibili. È facile osservare che fondendo le coppie (valide) in entrambe le configurazioni la partizione risultante è composta da sottografi connessi e dunque valida.}
 \end{figure}
 \end{frame}
 
@@ -685,12 +685,12 @@ Ora che abbiamo una misura di bontà possiamo definire il nostro problema di app
 
 \begin{frame}{Verso una formulazione greedy}
 Vogliamo formulare una versione meno accurata ma più efficiente,
-introduciamo alcuni rilassamenti al problema andando a determinare un algoritmo greedy e bottom-up, ci serve però un modo per valutare la bontà di una fusione di cluster.
-\begin{definition}[Misura di Dissimilarità]
+introduciamo alcuni rilassamenti andando a determinare un algoritmo greedy e bottom-up, ci serve però un modo per valutare la bontà di una fusione di cluster.
+\begin{deff}[Misura di Dissimilarità]
 $d:(C_i, C_j)\to R^{+}_0$ \\
 $d(C_i, C_j) = p(C_i\cup C_j) - p(C_i) - p(C_j)$
-\end{definition}
-È facile osservare che $d\geq 0$. \\
+\end{deff}
+È facile osservare che $d\geq 0$. (Appendice (3)) \\
 
 Possiamo allora riscrivere il problema nella forma
 $\mathbf{C}_{\mathcal{L}}^{*}(\mathcal{X})=\left(\mathbf{C}_{\mathcal{L}+1}^{\prime}(\mathcal{X}) \backslash\left\{C_{i}^{\prime}, C_{j}^{\prime}\right\}\right) \cup\left\{C_{i}^{\prime} \cup C_{j}^{\prime}\right\}$ \ dove \\
@@ -704,7 +704,6 @@ Deriviamo un algoritmo greedy togliendo la ricerca su $\Phi_{\mathcal{L}+1}$ e o
 $\widehat{\mathbf{C}}_{\mathcal{L}}(\mathcal{X})=\left(\mathbf{C}_{\mathcal{L}+1}(\mathcal{X}) \backslash\left\{C_{i}^{\prime}, C_{j}^{\prime}\right\}\right) \cup\left\{C_{i}^{\prime} \cup C_{j}^{\prime}\right\}$ \\
 dove \ $\left(C_{i}^{\prime}, C_{j}^{\prime}\right)=\underset{C_{i}, C_{j} \in \widehat{\mathbf{C}}_{\mathcal{L} + 1}(\mathcal{X}) \atop \Psi(C_i, C_j) \ \text{è vera}}{\operatorname{argmin}}d(C_{i}, C_{j})$ \\
 Questo riduce notevolmente il costo computazionale ma non assicura più l'ottimalità della soluzione trovata. \\
-\vskip 0.1in
 Siamo ora pronti a descrivere l'algoritmo di clustering.
 \end{frame}
 
