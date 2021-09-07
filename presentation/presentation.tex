@@ -114,7 +114,7 @@ In generale le varietà (Manifold) sono strutture globalmente complesse che loca
 Un esempio classico sono una sfera in $\RR^{3}$ e una circonferenza in $\RR^{2}$, rispettivamente due varietà di dimensione $2$ e $1$.
 \end{frame}
 
-\begin{frame}
+\begin{frame}{Buone e cattive approssimazioni}
 \begin{figure}[b]
 \centering
 \includegraphics[width=0.85\textwidth]{graphics/goodandbadapprox.eps}
@@ -146,7 +146,7 @@ Definiamo dunque una metrica tra spazi tangenti.
 \end{frame}
 
 \begin{frame}{Grassmann Manifold e Geodetiche}
-L'insieme dei sottospazi lineari di dimensione $d$ di $\RR^{N}$ è detto Grassmanniana indicato $G_{N,d}(\RR^{N})$. In $G_{N,d}(\RR^{N})$ è definita la distanza geodetica tra due sottospazi a partire dai loro angoli principali. In particolare possiamo definire la distanza tra $M_x$ e $M_y$ come
+L'insieme dei sottospazi lineari di dimensione $d$ di $\RR^{N}$ è detto Grassmanniana indicato $G_{N,d}$. In $G_{N,d}$ è definita la distanza geodetica tra due sottospazi a partire dai loro angoli principali. In particolare possiamo definire la distanza tra $M_x$ e $M_y$ come
 
 \begin{wrapfigure}{r}{0.4\textwidth}
     \centering
@@ -395,7 +395,8 @@ come mostrato da
 %Straight Lines [id:da3629796162682901] 
 \draw [color={rgb, 255:red, 74; green, 144; blue, 226 }  ,draw opacity=1 ][line width=1.5]    (258.5,140) -- (275.5,250) ;
 %Shape: Boxed Line [id:dp8523146942561193] 
-\draw [color={rgb, 255:red, 144; green, 19; blue, 254 }  ,draw opacity=1 ][line width=1.5]    (219.5,39.5) -- (234.75,160.5) ;
+% \draw [color={rgb, 255:red, 144; green, 19; blue, 254 }  ,draw opacity=1 ][line width=1.5]    (219.5,39.5) -- (234.75,160.5) ;
+\draw [color={rgb, 255:red, 208; green, 2; blue, 27}  ,draw opacity=1 ][line width=1.5]    (219.5,39.5) -- (234.75,160.5) ;
 %Shape: Polygon Curved [id:ds3851864208820661] 
 \draw  [color={rgb, 255:red, 208; green, 2; blue, 27 }  ,draw opacity=1 ][line width=1.5]  (387.79,120.31) .. controls (392.07,116.59) and (398.02,115.48) .. (398.95,121.43) .. controls (399.88,127.38) and (395.97,134.81) .. (402.01,145.23) .. controls (408.06,155.64) and (393.55,157.5) .. (386.12,146.34) .. controls (378.68,135.18) and (383.51,124.03) .. (387.79,120.31) -- cycle ;
 %Shape: Regular Polygon [id:dp892164273562944] 
@@ -511,7 +512,7 @@ spaces
   %Shape: Circle [id:dp5945045785711252] 
   \draw  [draw opacity=0][fill={rgb, 255:red, 245; green, 166; blue, 35 }  ,fill opacity=1 ] (496.21,131.4) .. controls (493.8,131.4) and (491.84,129.44) .. (491.84,127.02) .. controls (491.85,124.61) and (493.81,122.65) .. (496.22,122.65) .. controls (498.64,122.66) and (500.6,124.62) .. (500.59,127.04) .. controls (500.59,129.45) and (498.63,131.41) .. (496.21,131.4) -- cycle ;
   %Shape: Boxed Line [id:dp7478817542096006] 
-  \draw [color={rgb, 255:red, 144; green, 19; blue, 254 }  ,draw opacity=1 ][line width=1.5]    (358.25,40) -- (370.03,133.5) ;
+  \draw [color={rgb, 255:red, 208; green, 2; blue, 27}  ,draw opacity=1 ][line width=1.5]    (358.25,40) -- (370.03,133.5) ;
   %Straight Lines [id:da66704891977561] 
   \draw [color={rgb, 255:red, 189; green, 16; blue, 224 }  ,draw opacity=1 ][line width=1.5]    (323.24,59.74) -- (405.93,112.29) ;
   %Shape: Arc [id:dp5143665499317362] 
@@ -524,7 +525,7 @@ spaces
   \draw [shift={(265.7,159.5)}, rotate = 535.45] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (6.25,-3) -- (0,0) -- (6.25,3) -- cycle    ;
   
   %Shape: Boxed Line [id:dp47072989935427656] 
-  \draw [color={rgb, 255:red, 144; green, 19; blue, 254 }  ,draw opacity=1 ][line width=1.5]    (256.6,84.28) -- (268.38,177.78) ;
+  \draw [color={rgb, 255:red, 208; green, 2; blue, 27}  ,draw opacity=1 ][line width=1.5]    (256.6,84.28) -- (268.38,177.78) ;
   %Straight Lines [id:da7260993475552717] 
   \draw [color={rgb, 255:red, 74; green, 144; blue, 226 }  ,draw opacity=1 ][line width=1.5]    (256.37,87.8) -- (269.5,172.8) ;
   %Shape: Arc [id:dp8033499777236282] 
@@ -538,7 +539,7 @@ spaces
   %Shape: Ellipse [id:dp6846662265731849] 
   \draw  [color={rgb, 255:red, 126; green, 211; blue, 33 }  ,draw opacity=1 ][dash pattern={on 5.63pt off 4.5pt}][line width=1.5]  (234.61,138.27) .. controls (230.02,107.07) and (241.49,79.55) .. (260.22,76.79) .. controls (278.96,74.03) and (297.86,97.09) .. (302.46,128.29) .. controls (307.05,159.49) and (295.58,187.02) .. (276.84,189.78) .. controls (258.11,192.53) and (239.2,169.47) .. (234.61,138.27) -- cycle ;
   %Shape: Boxed Line [id:dp642651091715541] 
-  \draw [color={rgb, 255:red, 144; green, 19; blue, 254 }  ,draw opacity=1 ][line width=1.5]    (136.75,36.5) -- (148.53,130) ;
+  \draw [color={rgb, 255:red, 208; green, 2; blue, 27}  ,draw opacity=1 ][line width=1.5]    (136.75,36.5) -- (148.53,130) ;
   %Straight Lines [id:da4622755125985092] 
   \draw [color={rgb, 255:red, 189; green, 16; blue, 224 }  ,draw opacity=1 ][line width=1.5]    (101.75,56.24) -- (184.43,108.79) ;
   %Shape: Arc [id:dp01602849060218059] 
@@ -551,7 +552,7 @@ spaces
   \draw [shift={(44.2,156)}, rotate = 535.45] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (6.25,-3) -- (0,0) -- (6.25,3) -- cycle    ;
   
   %Shape: Boxed Line [id:dp026049597848387673] 
-  \draw [color={rgb, 255:red, 144; green, 19; blue, 254 }  ,draw opacity=1 ][line width=1.5]    (35.1,80.78) -- (46.89,174.28) ;
+  \draw [color={rgb, 255:red, 208; green, 2; blue, 27}  ,draw opacity=1 ][line width=1.5]    (35.1,80.78) -- (46.89,174.28) ;
   %Straight Lines [id:da46987494603891933] 
   \draw [color={rgb, 255:red, 74; green, 144; blue, 226 }  ,draw opacity=1 ][line width=1.5]    (34.87,84.3) -- (48.01,169.3) ;
   %Shape: Arc [id:dp10311667832038585] 
@@ -614,8 +615,8 @@ spaces
 
 \begin{frame}{Punto medio di Karcher}
 Siamo inoltre interessati a poter calcolare una generalizzazione della media aritmetica applicata alla Grassmanniana.
-\begin{deff}[Punto medio di Karcher su $G_{N,d}(\RR^{N})$ rispetto $D_T$]
-Il punto medio di un insieme $C$ di punti di $G_{N,d}(\RR^{N})$ rispetto alla distanza $D_T$ è dato da
+\begin{deff}[Punto medio di Karcher su $G_{N,d}$ rispetto $D_T$]
+Il punto medio di un insieme $C$ di punti di $G_{N,d}$ rispetto alla distanza $D_T$ è dato da
 \begin{equation*}
 M_{C}=\underset{M \in G_{N, d}}{\arg \min } \sum_{x \in C} D_{T}^{2}\left(M_{x}, M\right)
 \end{equation*}
