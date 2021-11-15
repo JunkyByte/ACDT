@@ -3,7 +3,7 @@ Tangent Based Manifold Approximation with locally linear models implementation.
 This is an implementation project for a course I did during my math Bachelor degree.
 There might be mistakes in the implementation, not all details and tests have been reimplemented.
 
-You can find the presentation for the seminar [here](Junkybyte/ACDT/presentation/presentation.pdf)
+You can find the presentation for the seminar [here](presentation/presentation.pdf)
 
 ---
 The reference paper https://linkinghub.elsevier.com/retrieve/pii/S0165168414001522
