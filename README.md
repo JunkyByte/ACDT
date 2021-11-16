@@ -1,5 +1,6 @@
 # ACDT
-Tangent Based Manifold Approximation with locally linear models implementation.
+Tangent Based Manifold Approximation with locally linear models.
+
 This is an implementation project for a course I did during my math Bachelor degree.
 There might be mistakes in the implementation, not all details and tests have been reimplemented.
 
